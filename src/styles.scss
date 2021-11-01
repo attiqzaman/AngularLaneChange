@@ -1,0 +1,42 @@
+/* You can add global styles to this file, and also import other style files */
+/* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+       #map {
+        height: 100%;
+      }
+
+      /* Optional: Makes the sample page fill the window. */
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #floating-panel {
+        position: absolute;
+        top: 10px;
+        left: 25%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: "Roboto", "sans-serif";
+        line-height: 30px;
+        padding-left: 10px;
+      }
+      .location-container {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        height: 100vh;
+    }
+    .search-location {
+      padding: 1rem;
+      box-shadow: 5px 2px 6px 4px #000;
+      background: #ffffff;
+  }
+
+  #drawPoints {
+    margin: 0, 20px;
+  }
