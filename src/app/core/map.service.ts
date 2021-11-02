@@ -4,6 +4,7 @@ import { UserDto } from 'src/Models/user.model';
 import { headingDistanceTo } from 'geolocation-utils'
 import { ProcessedRouteWrapper } from './ProcessedRouteWrapper';
 import { ConvertLatLngToSnapshots } from './Util';
+import { PrintRoute } from './FileSaver';
 // import {} from '@types/googlemaps';
 
 @Injectable({
@@ -11,9 +12,9 @@ import { ConvertLatLngToSnapshots } from './Util';
 })
 export class MapService {
 
-  constructor() { }
+	constructor() { }
 
-  initMap(): void {
+	initMap(): void {
 	const newUser = new UserDto();
 	var mark = null;
 	var latLng: google.maps.LatLng;
@@ -105,6 +106,18 @@ export class MapService {
 		on2ndBtnClickHandler
 	);
 
+	const onDownloadProcessedFileHandler = () => {
+		let rawParameters = (document.getElementById("LowPassFilterParameters") as HTMLInputElement).value.split(',');
+		let cutOffFrequency = Number(rawParameters[0].trim());
+		let sampleRate = Number(rawParameters[1].trim());
+
+		this.calculateAndDisplayRoute(directionsService, directionsRenderer, map, startLatLng, endLatLng, "downloadProcessedFile", undefined, cutOffFrequency, sampleRate);
+	};
+	document.getElementById("downloadProcessedFile")?.addEventListener(
+		"click",
+		onDownloadProcessedFileHandler
+	);
+
 	// const onDrawRelativePointsBtnClickHandler = () => {
 	// 	let rawLatLong = (document.getElementById("pointOfInterest") as HTMLInputElement).value;
 	// 	let latLongArray = rawLatLong.split(',');
@@ -128,7 +141,7 @@ export class MapService {
 		"change",
 		onChangeHandler
 	);
-}
+	}
 
 	calculateAndDisplayRoute(
 		directionsService: google.maps.DirectionsService,
@@ -138,7 +151,9 @@ export class MapService {
 		startLatLng: google.maps.LatLng,
 		endLatLng: google.maps.LatLng,
 		drawPointsType: string,
-		pointOfInterestLatLng?: google.maps.LatLng
+		pointOfInterestLatLng?: google.maps.LatLng,
+		cutOffFrequency?: number,
+		sampleRate?: number
 	) {
 		// const startLatLng = document.getElementById("start") as HTMLInputElement).value;
 		directionsService
@@ -187,20 +202,32 @@ export class MapService {
 
 				console.log(`totalPoints: ${points.length}`);
 				points = this.interpolatePoints(points);
-				let snapshots = ConvertLatLngToSnapshots(points);
-				let route = new ProcessedRouteWrapper("test user", "test route", snapshots);
-
-				if (drawPointsType !== "None" ) {
-					if (drawPointsType === "All") {
+				switch (drawPointsType) {
+					case 'All':
 						points.forEach(pt => {
-							this.drawPoint(pt, map);
+							var marker = new google.maps.Marker({
+								position: pt,
+								icon: {
+									path: google.maps.SymbolPath.CIRCLE,
+									fillColor: '#F00',
+									fillOpacity: 0.6,
+									strokeColor: '#F00',
+									strokeOpacity: 0.9,
+									strokeWeight: 1,
+									scale: 3
+								}
+							});
+					
+							// To add the marker to the map, call setMap();
+							marker.setMap(map);
 						});
-					} else {
+						break;
+					case 'PointsOfInterest':
 						if (pointOfInterestLatLng === undefined) {
 							throw new Error("latLong not found.")
 						}
 
-						const distanceFromPointOfInterest = 75
+						const distanceFromPointOfInterest = 100
 								
 						for (let index = 0; index < points.length; index++) {
 							const pt = points[index];
@@ -226,14 +253,80 @@ export class MapService {
 						
 								// To add the marker to the map, call setMap();
 								marker.setMap(map);	
-							}
-											
+							}					
 						}
-					}
+						break;
+					case 'downloadProcessedFile':
+						if (cutOffFrequency === undefined || sampleRate === undefined) {
+							throw new Error("latLong not found.")
+						}
+
+						let snapshots = ConvertLatLngToSnapshots(points);
+						let route = new ProcessedRouteWrapper("UI", "route", cutOffFrequency, sampleRate, snapshots);
+						PrintRoute(route);
+						break;
+					default:
+						directionsRenderer.setDirections(response);
 				}
-				else {
-					directionsRenderer.setDirections(response);
-				}
+
+				// if (drawPointsType !== "None" ) {
+				// 	if (drawPointsType === "All") {
+				// 		points.forEach(pt => {
+				// 			var marker = new google.maps.Marker({
+				// 				position: pt,
+				// 				icon: {
+				// 					path: google.maps.SymbolPath.CIRCLE,
+				// 					fillColor: '#F00',
+				// 					fillOpacity: 0.6,
+				// 					strokeColor: '#F00',
+				// 					strokeOpacity: 0.9,
+				// 					strokeWeight: 1,
+				// 					scale: 3
+				// 				}
+				// 			});
+					
+				// 			// To add the marker to the map, call setMap();
+				// 			marker.setMap(map);
+				// 		});
+				// 	} else {
+				// 		if (pointOfInterestLatLng === undefined) {
+				// 			throw new Error("latLong not found.")
+				// 		}
+
+				// 		const distanceFromPointOfInterest = 100
+								
+				// 		for (let index = 0; index < points.length; index++) {
+				// 			const pt = points[index];
+				// 			let headingDistance = headingDistanceTo(
+				// 				{lat:pointOfInterestLatLng?.lat(), lng:pointOfInterestLatLng?.lng()},
+				// 				{lat:pt?.lat(), lng:pt?.lng()}
+				// 			)
+
+				// 			if (Math.abs(headingDistance.distance) < distanceFromPointOfInterest) {
+				// 				// this.drawPoint(pt, map);	
+				// 				var marker = new google.maps.Marker({
+				// 					position: pt,
+				// 					icon: {
+				// 						path: google.maps.SymbolPath.CIRCLE,
+				// 						fillColor: '#F00',
+				// 						fillOpacity: 0.6,
+				// 						strokeColor: '#F00',
+				// 						strokeOpacity: 0.9,
+				// 						strokeWeight: 1,
+				// 						scale: 3
+				// 					}
+				// 				});
+						
+				// 				// To add the marker to the map, call setMap();
+				// 				marker.setMap(map);	
+				// 			}
+											
+				// 		}
+				// 	}
+				// }
+				// else {
+				// 	directionsRenderer.setDirections(response);
+				// }
 			});
 			// .catch((e: any) => window.alert("Directions request failed due to " + status));
 	}

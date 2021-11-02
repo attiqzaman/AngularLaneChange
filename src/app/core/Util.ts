@@ -1,5 +1,7 @@
+import { ProcessedRouteWrapper } from "./ProcessedRouteWrapper";
 import { Section } from "./Section";
 import { Snapshot } from "./Snapshot";
+
 var dsp = require('digitalsignals');
 
 export function AreSnapshotsOnSamePoint(a:Snapshot, b: Snapshot, useGooglePoints: boolean) : boolean {
@@ -176,21 +178,21 @@ export function ConvertLatLngToSnapshots(points: google.maps.LatLng[]): Snapshot
     return allSnapshots;
 }
 
-export function ApplySmoothingfilter(input: number[]): number[] {
+export function ApplySmoothingfilter(input: number[], sampleRate: number, cutoOffFrequency: number): number[] {
     var clonedInput  = [...input];
     console.log(`input: ${input}`);
 
     // low-pass-filter
     const lowPassFilter = require('low-pass-filter').lowPassFilter;
-    lowPassFilter(clonedInput, 200, 44100, 1);
+    lowPassFilter(clonedInput, sampleRate, cutoOffFrequency, 1);
     console.log(`low-pass-filter: ${clonedInput}`);
     
-    var clonedInput  = [...input];
+    // var clonedInput  = [...input];
 
-    // dsp.js
-    var filter = new dsp.IIRFilter(dsp.LOWPASS, 200, 1, 44100);
-    filter.process(clonedInput);
-    console.log(`dsp.js: ${clonedInput}`);
+    // // dsp.js
+    // var filter = new dsp.IIRFilter(dsp.LOWPASS, 200, 1, 44100);
+    // filter.process(clonedInput);
+    // console.log(`dsp.js: ${clonedInput}`);
 
     return clonedInput;
 }

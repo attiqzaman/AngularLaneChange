@@ -16,14 +16,16 @@ import { headingDistanceTo } from 'geolocation-utils'
         Distances: number[] = [];
 		Latitudes: number[] = [];
 		Longitudes: number[] = [];
-		SmoothedLatitudes: number[] = [];
-		SmoothedLongitudes: number[] = [];
+		SmoothedHeading: number[] = [];
+		// SmoothedLongitudes: number[] = [];
 		OutHeadings: number[] = [];
 		Slopes: number[] = [];
 		Accuracies: number[] = [];
 		AccumulativeDistances: number[] = [];
 		AverageHeadings: number[] = [];
 		DifferentialHeadings: number[] = [];
+		SampleRate: number;
+		CutOffFrequency: number;
 
 		// We will most likely use Google points but foer now keeping the non-google provided GPS data too.
 		// DistancesNotGoogle: number[];
@@ -36,9 +38,11 @@ import { headingDistanceTo } from 'geolocation-utils'
 		// AverageHeadingsNotGoogle: number[];
 		// DifferentialHeadingsNotGoogle: number[];
 
-        constructor(userId: string, routeId: string, snapshots: Snapshot[]) {
+        constructor(userId: string, routeId: string, cutOffFrequency: number, sampleRate: number, snapshots: Snapshot[]) {
             this.UserId = userId;
             this.RouteId = routeId;
+			this.CutOffFrequency = cutOffFrequency;
+			this.SampleRate = sampleRate;
             this.SortedSnapshots = snapshots;
 
 			this.ProcessRoute(true);
@@ -145,8 +149,7 @@ import { headingDistanceTo } from 'geolocation-utils'
 				// differentialHeading3.Add(averageHeading3[i] - averageHeading3[i - 1]);
 			}
 
-			this.SmoothedLatitudes = ApplySmoothingfilter(this.Latitudes);
-			this.SmoothedLongitudes = ApplySmoothingfilter(this.Longitudes);
+			this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.SampleRate, this.CutOffFrequency);
 
 			// const dh1 = GetDH1(this.DifferentialHeadings);
 			// const straightSections = GetStraightSections(dh1);
