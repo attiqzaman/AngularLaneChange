@@ -24,8 +24,8 @@ import { headingDistanceTo } from 'geolocation-utils'
 		AccumulativeDistances: number[] = [];
 		AverageHeadings: number[] = [];
 		DifferentialHeadings: number[] = [];
-		SampleRate: number;
-		CutOffFrequency: number;
+		cutOffFrequency2: number;
+		cutOffFrequency1: number;
 
 		// We will most likely use Google points but foer now keeping the non-google provided GPS data too.
 		// DistancesNotGoogle: number[];
@@ -38,11 +38,11 @@ import { headingDistanceTo } from 'geolocation-utils'
 		// AverageHeadingsNotGoogle: number[];
 		// DifferentialHeadingsNotGoogle: number[];
 
-        constructor(userId: string, routeId: string, cutOffFrequency: number, sampleRate: number, snapshots: Snapshot[]) {
+        constructor(userId: string, routeId: string, cutOffFrequency1: number, cutOffFrequency2: number, snapshots: Snapshot[]) {
             this.UserId = userId;
             this.RouteId = routeId;
-			this.CutOffFrequency = cutOffFrequency;
-			this.SampleRate = sampleRate;
+			this.cutOffFrequency1 = cutOffFrequency1;
+			this.cutOffFrequency2 = cutOffFrequency2;
             this.SortedSnapshots = snapshots;
 
 			this.ProcessRoute(true);
@@ -149,7 +149,7 @@ import { headingDistanceTo } from 'geolocation-utils'
 				// differentialHeading3.Add(averageHeading3[i] - averageHeading3[i - 1]);
 			}
 
-			this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.SampleRate, this.CutOffFrequency);
+			this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.cutOffFrequency1, this.cutOffFrequency2);
 
 			// const dh1 = GetDH1(this.DifferentialHeadings);
 			// const straightSections = GetStraightSections(dh1);

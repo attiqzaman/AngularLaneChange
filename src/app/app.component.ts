@@ -15,6 +15,5 @@ export class AppComponent {
     (window as any).initMap  = mapService.initMap;
     (window as any).calculateAndDisplayRoute  = mapService.calculateAndDisplayRoute;
     (window as any).interpolatePoints  = mapService.interpolatePoints;
-
   }
 }

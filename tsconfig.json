@@ -4,6 +4,7 @@
   "typeRoots": [ "../node_modules/@types" ],
   "compileOnSave": false,
   "compilerOptions": {
+    "types": [ "node" ],
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
