@@ -4,6 +4,7 @@ import { headingDistanceTo } from 'geolocation-utils'
 import { ProcessedRouteWrapper } from './ProcessedRouteWrapper';
 import { ConvertLatLngToSnapshots } from './Util';
 import { PrintRoute } from './FileSaver';
+import { SectionType } from './Section';
 
 @Injectable({
   providedIn: 'root'
@@ -230,7 +231,42 @@ export class MapService {
 
 						let snapshots = ConvertLatLngToSnapshots(points);
 						let route = new ProcessedRouteWrapper("UI", "route", cutOffFrequency1, cutOffFrequency2, snapshots);
-						PrintRoute(route);
+						
+						route.AllSections.forEach(section => {
+							let drawLine = [
+								{ lat: route.Latitudes[section.StartIndex], lng: route.Longitudes[section.StartIndex] },
+								{ lat: route.Latitudes[section.EndIndex], lng: route.Longitudes[section.EndIndex] },
+							]
+
+							let strokeColor = '';
+							switch (section.SectionType) {
+								case SectionType.Straight:
+									strokeColor = 'red';
+									break;
+								case SectionType.Curved:
+									strokeColor = 'blue';
+									break;
+								case SectionType.Transient:
+									strokeColor = 'green';
+									break
+								default:
+									strokeColor = 'white';
+									break;
+							}
+							
+							var path = new google.maps.Polyline({
+								path: drawLine,
+								geodesic: true,
+								strokeColor: strokeColor,
+								strokeOpacity: 1.0,
+								strokeWeight: 4,
+							});
+
+							// directionsRenderer.setMap(null);
+							path.setMap(map);	
+						});			
+
+						// PrintRoute(route);
 						break;
 					default:
 						directionsRenderer.setDirections(response);
@@ -260,7 +296,7 @@ export class MapService {
 
 	interpolatePoints(pointsList: google.maps.LatLng[]): google.maps.LatLng[] {
 		let newList: google.maps.LatLng[] = [];
-		let interpolatedPointsDiffMs = 2.5;
+		let interpolatedPointsDiffMs = 3;
 
 		for (var i = 0; i <= pointsList.length - 2; i++) {
 			var firstPoint = pointsList[i];

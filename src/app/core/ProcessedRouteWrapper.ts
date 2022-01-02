@@ -2,8 +2,9 @@
     /**A wrapper to keep all list of double arrays needed to generate road sections. */
 
 import { Snapshot } from "./Snapshot";
-import { ApplySmoothingfilter, AreSnapshotsOnSamePoint, GetDH1, GetStraightSections } from "./Util";
+import { ApplySmoothingfilter, AreSnapshotsOnSamePoint, CalculateAveragedDifferentialHeadings, CalculatePathAveragedDifferentialHeading, CalculatePathAveragedHeading, CalculatePathAveragedSlope, GetAllNonStraightSections, GetStraightSections, PathAveragedDifferentialHeadingReselect } from "./Util";
 import { headingDistanceTo } from 'geolocation-utils'
+import { Section, SectionType } from "./Section";
 
     // TODO: Clean this once we have finalized the implementation.
 
@@ -17,7 +18,6 @@ import { headingDistanceTo } from 'geolocation-utils'
 		Latitudes: number[] = [];
 		Longitudes: number[] = [];
 		SmoothedHeading: number[] = [];
-		// SmoothedLongitudes: number[] = [];
 		OutHeadings: number[] = [];
 		Slopes: number[] = [];
 		Accuracies: number[] = [];
@@ -26,6 +26,10 @@ import { headingDistanceTo } from 'geolocation-utils'
 		DifferentialHeadings: number[] = [];
 		cutOffFrequency2: number;
 		cutOffFrequency1: number;
+		StraightSections: Section[] = [];
+		AveragedDifferentialHeadings: number[] = [];
+		PathAveragedHeadings: number[] = [];
+		AllSections: Section[] = [];
 
 		// We will most likely use Google points but foer now keeping the non-google provided GPS data too.
 		// DistancesNotGoogle: number[];
@@ -96,19 +100,14 @@ import { headingDistanceTo } from 'geolocation-utils'
 
                     this.Distances.push(headingDistance.distance)
 					this.OutHeadings.push(headingDistance.heading);
-					let slope = (this.OutHeadings[index] - this.OutHeadings[index - 1]) / this.Distances[index];
-					this.Slopes.push(slope);
+					// let slope = (this.OutHeadings[index] - this.OutHeadings[index - 1]) / this.Distances[index];
+					// this.Slopes.push(slope);
 					this.Accuracies.push(currentSnapshot.Accuracy);
 					this.AccumulativeDistances.push(this.Distances[index] + this.AccumulativeDistances[index - 1]);
 				}
 			}
 
 			this.AverageHeadings.push(0);
-			this.DifferentialHeadings.push(0);
-			// var averageHeading5: number[]; this.AverageHeadings.push(0);
-			// var differentialHeading5: number[]; this.AverageHeadings.push(0);
-			// var averageHeading3: number[]; this.AverageHeadings.push(0);
-			// var differentialHeading3: number[]; this.AverageHeadings.push(0);
 
 			for (let i = 1; i < this.OutHeadings.length; i++)
 			{
@@ -122,34 +121,88 @@ import { headingDistanceTo } from 'geolocation-utils'
 					this.AverageHeadings.push((this.OutHeadings[i - 4] + this.OutHeadings[i - 3] + this.OutHeadings[i - 2] + this.OutHeadings[i - 1] +
 						this.OutHeadings[i] + this.OutHeadings[i + 1] + this.OutHeadings[i + 2] + this.OutHeadings[i + 3] + this.OutHeadings[i + 4]) / 9);
 				}
-
-				this.DifferentialHeadings.push(this.AverageHeadings[i] - this.AverageHeadings[i - 1]);
-
-				// if (i < 3 || i > this.OutHeadings.Count - 4)
-				// {
-				// 	averageHeading5.Add(0);
-				// }
-				// else
-				// {
-				// 	averageHeading5.Add((this.OutHeadings[i - 2] + this.OutHeadings[i - 1] +
-				// 		this.OutHeadings[i] + this.OutHeadings[i + 1] + this.OutHeadings[i + 2]) / 5);
-				// }
-
-				// differentialHeading5.Add(averageHeading5[i] - averageHeading5[i - 1]);
-
-				// if (i < 2 || i > this.OutHeadings.Count - 3)
-				// {
-				// 	averageHeading3.Add(0);
-				// }
-				// else
-				// {
-				// 	averageHeading3.Add((this.OutHeadings[i - 1] + this.OutHeadings[i] + this.OutHeadings[i + 1]) / 3);
-				// }
-
-				// differentialHeading3.Add(averageHeading3[i] - averageHeading3[i - 1]);
 			}
 
 			this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.cutOffFrequency1, this.cutOffFrequency2);
+			
+			// should we calculate Slope based on smoothed heading?
+			for (let i = 1; i < this.SmoothedHeading.length; i++) {
+				let slope = (this.SmoothedHeading[i] - this.SmoothedHeading[i - 1]) / this.Distances[i];
+				this.Slopes.push(slope);	
+			}
+
+			// Now calculate differential headings array from smoothed headings
+			this.DifferentialHeadings.push(0);
+			for (let i = 1; i < this.SmoothedHeading.length; i++) {
+				this.DifferentialHeadings.push((this.SmoothedHeading[i] - this.SmoothedHeading[i - 1])/3);
+			}
+
+			this.AveragedDifferentialHeadings = CalculateAveragedDifferentialHeadings(this.DifferentialHeadings);
+			let straightSections = GetStraightSections(this.AveragedDifferentialHeadings);
+			straightSections.forEach(section => {
+				let pathAveragedHeading = CalculatePathAveragedHeading(section, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
+				section.PathAveragedHeading = pathAveragedHeading;
+			});
+			// this.PathAveragedHeadings = CalculatePathAveragedHeadings(this.StraightSections, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
+
+			// TODO: post-process straight sections if needed e.g.
+			// * any spot between straight sections which is less than 50 m (parameterised) then its single straight section
+			// * if the spot between straight sections is alittle more than 50 meters then we compare the PAH of both straight
+			// sections and if its less than a threhold (0.1 m/degree) then we consider that one single straight section
+			const MinimumPointsBetweenStraightSections = 15;
+			this.StraightSections.push(straightSections[0]);
+			// let previousStraightSection = straightSections[0];
+			for (let i = 1; i < straightSections.length; i++) {
+				const currentStraightSection = straightSections[i];
+				const previousStraightSection = this.StraightSections[this.StraightSections.length - 1];
+
+				if (currentStraightSection.StartIndex - previousStraightSection.EndIndex < MinimumPointsBetweenStraightSections) {
+					previousStraightSection.EndIndex = currentStraightSection.EndIndex;
+					// should we worry about pathAveragedHeading here?
+				} else {
+					this.StraightSections.push(currentStraightSection);
+				}
+			}
+			
+			// Now we have all straight sections, everything in between straight sections is a curve section (curve section is further sub-divided in
+			// TransientSections on left and right and true curve section)
+			let allNonStraightSections = GetAllNonStraightSections(this.StraightSections);
+
+			this.AllSections.push(this.StraightSections[0])
+			// Assume our path starts and ends at a straight section for now.
+			for (let i = 1; i < this.StraightSections.length; i++) {
+				const currentStraightSection = this.StraightSections[i];
+				const previousStraightSection = this.StraightSections[i - 1];
+				
+				let rawNonStraightSection = new Section(previousStraightSection.EndIndex, currentStraightSection.StartIndex - 1, SectionType.Unknown);
+				
+				// we need to process this section more to get the transient sections
+				let pathAveragedDifferentialHeading1 = CalculatePathAveragedDifferentialHeading(rawNonStraightSection, this.DifferentialHeadings, this.Distances, this.AccumulativeDistances);
+				let reSelectedSection1 = PathAveragedDifferentialHeadingReselect(rawNonStraightSection, this.DifferentialHeadings, pathAveragedDifferentialHeading1);
+
+				// rerun the padh and reselect process.
+				let pathAveragedDifferentialHeading2 = CalculatePathAveragedDifferentialHeading(reSelectedSection1, this.DifferentialHeadings, this.Distances, this.AccumulativeDistances);
+				let trueCurveSection = PathAveragedDifferentialHeadingReselect(reSelectedSection1, this.DifferentialHeadings, pathAveragedDifferentialHeading2);
+				trueCurveSection.SectionType = SectionType.Curved;
+
+				let pathAveragedSlopeForCurveSection = CalculatePathAveragedSlope(trueCurveSection, this.Slopes, this.Distances, this.AccumulativeDistances);
+				trueCurveSection.PathAvergaedSlope = pathAveragedSlopeForCurveSection;
+
+				// now we have curve section, the sections to the right and left are transient sections.
+				let leftTransientSection = new Section(rawNonStraightSection.StartIndex, trueCurveSection.StartIndex, SectionType.Transient);
+				let pathAveragedSlopeForLeftTransientSection = CalculatePathAveragedSlope(leftTransientSection, this.Slopes, this.Distances, this.AccumulativeDistances);
+				leftTransientSection.PathAvergaedSlope = pathAveragedSlopeForLeftTransientSection;
+
+				let rightTransientSection = new Section(trueCurveSection.EndIndex, rawNonStraightSection.EndIndex, SectionType.Transient);
+				let pathAveragedSlopeForRightTransientSection = CalculatePathAveragedSlope(rightTransientSection, this.Slopes, this.Distances, this.AccumulativeDistances);
+				rightTransientSection.PathAvergaedSlope = pathAveragedSlopeForRightTransientSection;
+				
+				this.AllSections.push(leftTransientSection);
+				this.AllSections.push(trueCurveSection);
+				this.AllSections.push(rightTransientSection);
+				this.AllSections.push(currentStraightSection);
+			}
+
 
 			// const dh1 = GetDH1(this.DifferentialHeadings);
 			// const straightSections = GetStraightSections(dh1);

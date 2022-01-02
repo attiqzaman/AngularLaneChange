@@ -1,14 +1,28 @@
 export class Section {
-    constructor(startIndex: number, endIndex: number, sectionType: string) 
-    {
-        this.StartIndex = startIndex;
-        this.EndIndex = endIndex;
-        this.SectionType = sectionType;
-    }
+	constructor(startIndex: number, endIndex: number, sectionType: SectionType) 
+	{
+		this.StartIndex = startIndex;
+		this.EndIndex = endIndex;
+		this.SectionType = sectionType;
+		this.PathAveragedHeading = NaN;
+		this.PathAvergaedSlope = NaN;
+	}
 
-    StartIndex: number;
+	getSectionLength()
+	{
+		return this.EndIndex - this.StartIndex;
+	}
 
-    EndIndex: number;
+	StartIndex: number;
+	EndIndex: number;
+	SectionType: SectionType;
+	PathAveragedHeading: number;
+	PathAvergaedSlope: number;
+}
 
-    SectionType: string;
+export enum SectionType {
+	Straight = 'Straight',
+	Curved = 'Curved',
+	Transient = 'Transient',
+	Unknown = 'Unknown'
 }

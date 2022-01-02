@@ -1,4 +1,4 @@
-import { Section } from "./Section";
+import { Section, SectionType } from "./Section";
 import { Snapshot } from "./Snapshot";
 
 var dsp = require('digitalsignals');
@@ -12,30 +12,102 @@ export function AreSnapshotsOnSamePoint(a:Snapshot, b: Snapshot, useGooglePoints
 	// a.Latitude == b.Latitude && a.Longitude == b.Longitude;
 }
 
-
-export function CalculatePathAveragedValue(
-	start: number,
-	end: number,
-	sourceData: number[],
-	distances: number[],
-	accumulativeDistances: number[]): number
+export function CalculatePathAveragedHeading(section: Section, headings: number[], distances: number[], accumulativeDistances: number[]): number
 {
-	let sumOfDifferenceOfSourceParameter: number[] = []
-	sumOfDifferenceOfSourceParameter.push(0);
+	let sumOfHeadingMultiplyDistance: number[] = []
+	sumOfHeadingMultiplyDistance.push(0);
 
 	let pathAveragedValue: number = 0;
-	for (let i = start; i <= end; i++)
+	let j = 1;
+	for (let i = section.StartIndex; i <= section.EndIndex; i++)
 	{
-		let currentValue = sourceData[i] * distances[i];
-		sumOfDifferenceOfSourceParameter.push(currentValue + sumOfDifferenceOfSourceParameter[i - 1]);
+		sumOfHeadingMultiplyDistance[j] = sumOfHeadingMultiplyDistance[j - 1] + (headings[i] * distances[i]);
+	
 
-		// This could just calculate pathAverageValue at the end but for now I am trying to keep
-		// things somewhat similar to original until we know the code has been translated successfully.
-		let currentAccumulativeDistanceFromStart = accumulativeDistances[i] - accumulativeDistances[start - 1];
-		pathAveragedValue = sumOfDifferenceOfSourceParameter[i] / currentAccumulativeDistanceFromStart;
+		// // This could just calculate pathAverageValue at the end but for now I am trying to keep
+		// // things somewhat similar to original until we know the code has been translated successfully.
+		// let currentAccumulativeDistanceFromStart = accumulativeDistances[i] - accumulativeDistances[section.StartIndex - 1];
+		// pathAveragedValue = sumOfHeadingMultiplyDistance[i] / currentAccumulativeDistanceFromStart;
+		j++;
 	}
 
+	let distanceInSection = accumulativeDistances[section.EndIndex] - accumulativeDistances[section.StartIndex];
+	pathAveragedValue = sumOfHeadingMultiplyDistance[sumOfHeadingMultiplyDistance.length - 1] / distanceInSection;
+
 	return pathAveragedValue;
+}
+
+// TODO: combine CalculatePathAveragedDifferentialHeading and CalculatePathAveragedHeading
+export function CalculatePathAveragedDifferentialHeading(section: Section, differentialHeadings: number[], distances: number[], accumulativeDistances: number[]): number
+{
+	let sumOfDifferentialHeadingMultiplyDistance: number[] = []
+	sumOfDifferentialHeadingMultiplyDistance.push(0);
+
+	let pathAveragedDifferentialHeading: number = 0;
+	let j = 1;
+	for (let i = section.StartIndex; i <= section.EndIndex; i++)
+	{
+		sumOfDifferentialHeadingMultiplyDistance[j] = sumOfDifferentialHeadingMultiplyDistance[j - 1] + (differentialHeadings[i] * distances[i]);
+		j++;
+	}
+
+	let distanceInSection = accumulativeDistances[section.EndIndex] - accumulativeDistances[section.StartIndex];
+	pathAveragedDifferentialHeading = sumOfDifferentialHeadingMultiplyDistance[sumOfDifferentialHeadingMultiplyDistance.length - 1] / distanceInSection;
+
+	return pathAveragedDifferentialHeading;
+}
+
+export function CalculatePathAveragedDifferentialHeadings(sections: Section[], differentialHeadings: number[], distances: number[], accumulativeDistances: number[]): number[]
+{
+	let pathAveragedDifferentialHeadings: number[] = [];
+
+	sections.forEach(section => {
+		let pathAveragedDifferentialHeading = CalculatePathAveragedDifferentialHeading(section, differentialHeadings, distances, accumulativeDistances);
+		pathAveragedDifferentialHeadings.push(pathAveragedDifferentialHeading);
+	});
+
+	return pathAveragedDifferentialHeadings;
+}
+
+export function CalculatePathAveragedHeadings(sections: Section[], headings: number[], distances: number[], accumulativeDistances: number[]): number[]
+{
+	let pathAveragedHeadings: number[] = [];
+
+	sections.forEach(section => {
+		let pathAveragedHeading = CalculatePathAveragedHeading(section, headings, distances, accumulativeDistances);
+		pathAveragedHeadings.push(pathAveragedHeading);
+	});
+
+	return pathAveragedHeadings;
+}
+
+export function PathAveragedDifferentialHeadingReselect(section: Section, differentialHeadings: number[], currentPathAveragedDifferentialHeading: number): Section {
+	let sb: number[] = [];
+	for (let i = section.StartIndex; i < section.EndIndex; i++) {
+		if (Math.abs(differentialHeadings[i]) >= Math.abs(currentPathAveragedDifferentialHeading)) {
+			sb.push(i)
+		}
+	}
+
+	return new Section(sb[0], sb[sb.length - 1], SectionType.Unknown);
+}
+
+export function CalculatePathAveragedSlope(section: Section, Slopes: number[], distances: number[], accumulativeDistances: number[]): number
+{
+	let sumOfSlopeMultiplyDistance: number[] = []
+	sumOfSlopeMultiplyDistance.push(0);
+
+	let j = 1;
+	for (let i = section.StartIndex; i <= section.EndIndex; i++)
+	{
+		sumOfSlopeMultiplyDistance[j] = sumOfSlopeMultiplyDistance[j - 1] + (Slopes[i] * distances[i]);
+		j++;
+	}
+
+	let distanceInSection = accumulativeDistances[section.EndIndex] - accumulativeDistances[section.StartIndex];
+	let pathAveragedDifferentialHeading = sumOfSlopeMultiplyDistance[sumOfSlopeMultiplyDistance.length - 1] / distanceInSection;
+
+	return pathAveragedDifferentialHeading;
 }
 
 // Not exactly sure what dh1 represents but its used in calculation of straight sections.
@@ -99,73 +171,154 @@ export function GetDH1 (differentialHeadings: number[]): number[]
 	return dh1;
 }
 
-// This returns a dictionary where each kvp represent a straight section, values are indices of the differential heading array. 
-export function GetStraightSections(dh1: number[]): {}
-{
+export function GetStraightSections(averagedHeadings: number[]): Section[] {
+	let scanWindow = 3;
+	let threshold = 0.01;
+
+	let straightSectionHelperArray: number[] = [];
+	for (let i = 1; i < averagedHeadings.length - 1 - scanWindow; i++) {
+		// if all points in our scanWindow are above threshold then 
+		let currentWindow = averagedHeadings.slice(i, i + scanWindow);
+
+		if (currentWindow.every(val => val > threshold)) {
+			straightSectionHelperArray.push(100);
+		} 
+		else if (currentWindow.every(val => val < -threshold)) {
+			straightSectionHelperArray.push(-100);
+		} else {
+			straightSectionHelperArray.push(0);
+		}
+	}
+	
 	let sections: Section[] = [];
-	// let sections: { [startPoint: string]: number } = {};
-	// let startSections: number[];
-	// let endSections: number[];
 
-	// We don't know if we started in a curve (meaning we will hit start point of a section first) or we
-	// already started in a straight section (meaning we will first hit end of straight section) so we need to
-	// first determine that, we will loop through the differential headings looking for both start and end of straight section, 
-	// depending on what we find first we will process the rest of the array accordingly.
-	let i = 6;
-	let startIndex: number;
-	let endIndex: number;
-	while (i < dh1.length)
-	{
-		if (IsStartOfStraightSection(i, dh1))
-		{
-			// We started in a curver.
-			startIndex = i;
-			endIndex = FindEndOfStraightSection(i, dh1);
-			sections.push(CreateStraightSection(startIndex, endIndex));
-			// endSections.push(endIndex);
-			// sections.Add(startIndex, endIndex);
-			i = endIndex; // should this be endIndex + 1?
-		}
-		else if (IsEndOfStraightSection(i, dh1))
-		{
-			// We started in a straight section, so assume start of straight section was the first data point.
-			startIndex = 0;
-			endIndex = i;
-			sections.push(CreateStraightSection(startIndex, endIndex));
-			// startSections.push(startIndex);
-			// endSections.push(endIndex);
-			i = endIndex; // should this be endIndex + 1?
-		}
-		else
-		{
-			i++;
-		}
-	}
+	// now all '0' points in our helper array are straight sections.
+	for (let i = 0; i < straightSectionHelperArray.length; i++) {
+		if (straightSectionHelperArray[i] === 0) {
+			let startStraightSectionIndex = i;
+			let endStraightSectionIndex = -1;
+			for (let j = i; j < straightSectionHelperArray.length; j++) {
+				if (straightSectionHelperArray[j] !== 0 || j === straightSectionHelperArray.length - 1) {
+					endStraightSectionIndex = j;
 
-	if (sections.length > 0)
-	{
-		while (i < dh1.length)
-		{
-			startIndex = FindStartOfStraightSection(i, dh1);
-			if (startIndex != -1)
-			{
-				endIndex = FindEndOfStraightSection(i, dh1);
-				sections.push(CreateStraightSection(startIndex, endIndex));
-				// startSections.push(startIndex);
-				// endSections.push(endIndex);
-				i = endIndex; // should this be endIndex + 1?
+					sections.push(new Section(startStraightSectionIndex, endStraightSectionIndex, SectionType.Straight));
+					i = j + 1;
+					break;
+				}
 			}
-		}
-
-	}
-	else
-	{
-		// we just were in a curve throughout the route.
-		// TODO: Handle the curve
+		}		
 	}
 
 	return sections;
 }
+
+export function GetAllNonStraightSections(straightSections: Section[]): Section[]
+{
+	let nonStraightSections: Section[] = [];
+	// Assume our path starts and ends at a straight section for now.
+	for (let i = 1; i < straightSections.length; i++) {
+		const currentSection = straightSections[i];
+		const previousSection = straightSections[i - 1];
+		
+		let nonStraightSection = new Section(previousSection.EndIndex, currentSection.StartIndex - 1, SectionType.Unknown);
+		nonStraightSections.push(nonStraightSection);
+	}
+
+	return nonStraightSections;
+}
+
+export function CalculateAveragedDifferentialHeadings(differentialHeadings: number[]): number[] {
+	let numberOfHeadingsToAverage = 20; // 10 points ahead and 10 points behind
+	let averagedHeadings: number[] = Array(differentialHeadings.length).fill(0);
+
+	// We can't averae start and of array on both sides so just copy over original values
+	for (let i = 0; i < numberOfHeadingsToAverage; i++) {
+		averagedHeadings[i] = differentialHeadings[i];
+
+		let lastIndex = differentialHeadings.length - 1;
+		averagedHeadings[lastIndex - i] = differentialHeadings[lastIndex - i];
+	}
+
+	for (let i = numberOfHeadingsToAverage; i < differentialHeadings.length - 1 - numberOfHeadingsToAverage; i++) {
+		let sumHeading = differentialHeadings[i];
+		for (let j = 0; j < numberOfHeadingsToAverage; j++) {
+			sumHeading = sumHeading + differentialHeadings[i + 1] + differentialHeadings[i - 1];
+		}
+
+		let pathAveragedHeading = sumHeading / (2*numberOfHeadingsToAverage + 1)
+		averagedHeadings[i] = pathAveragedHeading;
+	}
+
+	return averagedHeadings;
+}
+
+// This returns a dictionary where each kvp represent a straight section, values are indices of the differential heading array. 
+// export function GetStraightSections(dh1: number[]): {}
+// {
+// 	let sections: Section[] = [];
+// 	// let sections: { [startPoint: string]: number } = {};
+// 	// let startSections: number[];
+// 	// let endSections: number[];
+
+// 	// We don't know if we started in a curve (meaning we will hit start point of a section first) or we
+// 	// already started in a straight section (meaning we will first hit end of straight section) so we need to
+// 	// first determine that, we will loop through the differential headings looking for both start and end of straight section, 
+// 	// depending on what we find first we will process the rest of the array accordingly.
+// 	let i = 6;
+// 	let startIndex: number;
+// 	let endIndex: number;
+// 	while (i < dh1.length)
+// 	{
+// 		if (IsStartOfStraightSection(i, dh1))
+// 		{
+// 			// We started in a curver.
+// 			startIndex = i;
+// 			endIndex = FindEndOfStraightSection(i, dh1);
+// 			sections.push(CreateStraightSection(startIndex, endIndex));
+// 			// endSections.push(endIndex);
+// 			// sections.Add(startIndex, endIndex);
+// 			i = endIndex; // should this be endIndex + 1?
+// 		}
+// 		else if (IsEndOfStraightSection(i, dh1))
+// 		{
+// 			// We started in a straight section, so assume start of straight section was the first data point.
+// 			startIndex = 0;
+// 			endIndex = i;
+// 			sections.push(CreateStraightSection(startIndex, endIndex));
+// 			// startSections.push(startIndex);
+// 			// endSections.push(endIndex);
+// 			i = endIndex; // should this be endIndex + 1?
+// 		}
+// 		else
+// 		{
+// 			i++;
+// 		}
+// 	}
+
+// 	if (sections.length > 0)
+// 	{
+// 		while (i < dh1.length)
+// 		{
+// 			startIndex = FindStartOfStraightSection(i, dh1);
+// 			if (startIndex != -1)
+// 			{
+// 				endIndex = FindEndOfStraightSection(i, dh1);
+// 				sections.push(CreateStraightSection(startIndex, endIndex));
+// 				// startSections.push(startIndex);
+// 				// endSections.push(endIndex);
+// 				i = endIndex; // should this be endIndex + 1?
+// 			}
+// 		}
+
+// 	}
+// 	else
+// 	{
+// 		// we just were in a curve throughout the route.
+// 		// TODO: Handle the curve
+// 	}
+
+// 	return sections;
+// }
 
 export function ConvertLatLngToSnapshots(points: google.maps.LatLng[]): Snapshot[] {
 	let allSnapshots: Snapshot[] = [];
@@ -279,7 +432,7 @@ function IsEndOfStraightSection(index: number, dh1: number[]): boolean
 
 function CreateStraightSection(startIndex: number, endIndex: number): Section
 {
-	return new Section(startIndex, endIndex, "Straight");
+	return new Section(startIndex, endIndex, SectionType.Straight);
 }
 
 
