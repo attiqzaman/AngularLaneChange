@@ -107,25 +107,24 @@ import { Section, SectionType } from "./Section";
 				}
 			}
 
-			this.AverageHeadings.push(0);
+			// SmoothedHeading should replace AverageHeadings
+			// this.AverageHeadings.push(0);
 
-			for (let i = 1; i < this.OutHeadings.length; i++)
-			{
-				if (i < 5 || i > this.OutHeadings.length - 6)
-				{
-					// They really want to see 0 instead in excel instead of just not showing the row or keeping the raw value.
-					this.AverageHeadings.push(0);
-				}
-				else
-				{
-					this.AverageHeadings.push((this.OutHeadings[i - 4] + this.OutHeadings[i - 3] + this.OutHeadings[i - 2] + this.OutHeadings[i - 1] +
-						this.OutHeadings[i] + this.OutHeadings[i + 1] + this.OutHeadings[i + 2] + this.OutHeadings[i + 3] + this.OutHeadings[i + 4]) / 9);
-				}
-			}
+			// for (let i = 1; i < this.OutHeadings.length; i++)
+			// {
+			// 	if (i < 5 || i > this.OutHeadings.length - 6)
+			// 	{
+			// 		// They really want to see 0 in excel instead of just not showing the row or keeping the raw value.
+			// 		this.AverageHeadings.push(0);
+			// 	}
+			// 	else
+			// 	{
+			// 		this.AverageHeadings.push((this.OutHeadings[i - 4] + this.OutHeadings[i - 3] + this.OutHeadings[i - 2] + this.OutHeadings[i - 1] +
+			// 			this.OutHeadings[i] + this.OutHeadings[i + 1] + this.OutHeadings[i + 2] + this.OutHeadings[i + 3] + this.OutHeadings[i + 4]) / 9);
+			// 	}
+			// }
 
 			this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.cutOffFrequency1, this.cutOffFrequency2);
-			
-			// should we calculate Slope based on smoothed heading?
 			for (let i = 1; i < this.SmoothedHeading.length; i++) {
 				let slope = (this.SmoothedHeading[i] - this.SmoothedHeading[i - 1]) / this.Distances[i];
 				this.Slopes.push(slope);	
@@ -174,15 +173,15 @@ import { Section, SectionType } from "./Section";
 				const currentStraightSection = this.StraightSections[i];
 				const previousStraightSection = this.StraightSections[i - 1];
 				
-				let rawNonStraightSection = new Section(previousStraightSection.EndIndex, currentStraightSection.StartIndex - 1, SectionType.Unknown);
+				let rawNonStraightSection = new Section(previousStraightSection.EndIndex, currentStraightSection.StartIndex + 1, SectionType.Unknown);
 				
 				// we need to process this section more to get the transient sections
-				let pathAveragedDifferentialHeading1 = CalculatePathAveragedDifferentialHeading(rawNonStraightSection, this.DifferentialHeadings, this.Distances, this.AccumulativeDistances);
-				let reSelectedSection1 = PathAveragedDifferentialHeadingReselect(rawNonStraightSection, this.DifferentialHeadings, pathAveragedDifferentialHeading1);
+				let pathAveragedDifferentialHeading1 = CalculatePathAveragedDifferentialHeading(rawNonStraightSection, this.AveragedDifferentialHeadings, this.Distances, this.AccumulativeDistances);
+				let reSelectedSection1 = PathAveragedDifferentialHeadingReselect(rawNonStraightSection, this.AveragedDifferentialHeadings, pathAveragedDifferentialHeading1);
 
 				// rerun the padh and reselect process.
-				let pathAveragedDifferentialHeading2 = CalculatePathAveragedDifferentialHeading(reSelectedSection1, this.DifferentialHeadings, this.Distances, this.AccumulativeDistances);
-				let trueCurveSection = PathAveragedDifferentialHeadingReselect(reSelectedSection1, this.DifferentialHeadings, pathAveragedDifferentialHeading2);
+				let pathAveragedDifferentialHeading2 = CalculatePathAveragedDifferentialHeading(reSelectedSection1, this.AveragedDifferentialHeadings, this.Distances, this.AccumulativeDistances);
+				let trueCurveSection = PathAveragedDifferentialHeadingReselect(reSelectedSection1, this.AveragedDifferentialHeadings, pathAveragedDifferentialHeading2);
 				trueCurveSection.SectionType = SectionType.Curved;
 
 				let pathAveragedSlopeForCurveSection = CalculatePathAveragedSlope(trueCurveSection, this.Slopes, this.Distances, this.AccumulativeDistances);

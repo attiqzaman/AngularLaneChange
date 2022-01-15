@@ -266,7 +266,7 @@ export class MapService {
 							path.setMap(map);	
 						});			
 
-						// PrintRoute(route);
+						PrintRoute(route);
 						break;
 					default:
 						directionsRenderer.setDirections(response);

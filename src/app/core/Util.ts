@@ -22,17 +22,11 @@ export function CalculatePathAveragedHeading(section: Section, headings: number[
 	for (let i = section.StartIndex; i <= section.EndIndex; i++)
 	{
 		sumOfHeadingMultiplyDistance[j] = sumOfHeadingMultiplyDistance[j - 1] + (headings[i] * distances[i]);
-	
-
-		// // This could just calculate pathAverageValue at the end but for now I am trying to keep
-		// // things somewhat similar to original until we know the code has been translated successfully.
-		// let currentAccumulativeDistanceFromStart = accumulativeDistances[i] - accumulativeDistances[section.StartIndex - 1];
-		// pathAveragedValue = sumOfHeadingMultiplyDistance[i] / currentAccumulativeDistanceFromStart;
 		j++;
 	}
 
-	let distanceInSection = accumulativeDistances[section.EndIndex] - accumulativeDistances[section.StartIndex];
-	pathAveragedValue = sumOfHeadingMultiplyDistance[sumOfHeadingMultiplyDistance.length - 1] / distanceInSection;
+	let sectionLength = accumulativeDistances[section.EndIndex] - accumulativeDistances[section.StartIndex];
+	pathAveragedValue = sumOfHeadingMultiplyDistance[sumOfHeadingMultiplyDistance.length - 1] / sectionLength;
 
 	return pathAveragedValue;
 }
@@ -108,6 +102,66 @@ export function CalculatePathAveragedSlope(section: Section, Slopes: number[], d
 	let pathAveragedDifferentialHeading = sumOfSlopeMultiplyDistance[sumOfSlopeMultiplyDistance.length - 1] / distanceInSection;
 
 	return pathAveragedDifferentialHeading;
+}
+
+export function OptimizeStraightSection(straightSection: Section, headings: number[], distances: number[]) {
+	// we will try to find the optimum PAH value between 0.9PAH to 1.1PAH. PAH which produces the min ALS
+	// is the optimum PAH value.
+	const pathAveragedHeadingMaxValue = 1.1 * straightSection.PathAveragedHeading;
+	const pathAveragedHeadingMinValue = 0.9 * straightSection.PathAveragedHeading;
+
+	let currentOptimimPathAveragedHeadingValue = straightSection.PathAveragedHeading;
+	let currentMinimumAlsValue = Number.MAX_VALUE;
+	
+	let potentialPathAveragedHeading = pathAveragedHeadingMinValue;
+	while (potentialPathAveragedHeading <= pathAveragedHeadingMaxValue) {
+		let als = 0;
+		for (let index = straightSection.StartIndex + 1; index <= straightSection.EndIndex; index++) {
+			let headingAtPoint = headings[index];
+
+			// WARN: there is a sign difference between the doc and code implementation
+			let theta = headingAtPoint - potentialPathAveragedHeading; // whats the unit here? degrees?
+			let thetaInRadians = theta * Math.PI / 180;
+			als = als + distances[index] * Math.sin(thetaInRadians);
+		}
+
+		if (als < currentMinimumAlsValue) {
+			currentOptimimPathAveragedHeadingValue = potentialPathAveragedHeading;
+		}
+
+		potentialPathAveragedHeading = potentialPathAveragedHeading + 0.1;
+	}
+
+	straightSection.PathAveragedHeading = currentOptimimPathAveragedHeadingValue;
+}
+
+export function OptimizeCurveSection(curveSection: Section, headings: number[], distances: number[]) {
+	// we will try to find the optimum PAH value between 0.9PAH to 1.1PAH. PAH which produces the min ALS
+	// is the optimum PAH value.
+	const pathAveragedHeadingMaxValue = 1.1 * curveSection.PathAveragedHeading;
+	const pathAveragedHeadingMinValue = 0.9 * curveSection.PathAveragedHeading;
+
+	let currentOptimimPathAveragedHeadingValue = curveSection.PathAveragedHeading;
+	let currentMinimumAlsValue = Number.MAX_VALUE;
+	
+	let potentialPathAveragedHeading = pathAveragedHeadingMinValue;
+	while (potentialPathAveragedHeading <= pathAveragedHeadingMaxValue) {
+		let als = 0;
+		for (let index = curveSection.StartIndex + 1; index <= curveSection.EndIndex; index++) {
+			let headingAtPoint = headings[index];
+
+			// WARN: there is a sign difference between the doc and code implementation
+			let theta = headingAtPoint - potentialPathAveragedHeading; // whats the unit here? degrees?
+			let thetaInRadians = theta * Math.PI / 180;
+			als = als + distances[index] * Math.sin(thetaInRadians);
+		}
+
+		if (Math.abs(als) < Math.abs(currentMinimumAlsValue)) {
+			currentOptimimPathAveragedHeadingValue = potentialPathAveragedHeading;
+		}
+	}
+
+	return currentOptimimPathAveragedHeadingValue;
 }
 
 // Not exactly sure what dh1 represents but its used in calculation of straight sections.
@@ -192,7 +246,7 @@ export function GetStraightSections(averagedHeadings: number[]): Section[] {
 	
 	let sections: Section[] = [];
 
-	// now all '0' points in our helper array are straight sections.
+	// now all consecutive '0' points in our helper array are straight sections.
 	for (let i = 0; i < straightSectionHelperArray.length; i++) {
 		if (straightSectionHelperArray[i] === 0) {
 			let startStraightSectionIndex = i;
@@ -231,7 +285,7 @@ export function CalculateAveragedDifferentialHeadings(differentialHeadings: numb
 	let numberOfHeadingsToAverage = 20; // 10 points ahead and 10 points behind
 	let averagedHeadings: number[] = Array(differentialHeadings.length).fill(0);
 
-	// We can't averae start and of array on both sides so just copy over original values
+	// We can't average start and of array on both sides so just copy over original values
 	for (let i = 0; i < numberOfHeadingsToAverage; i++) {
 		averagedHeadings[i] = differentialHeadings[i];
 
@@ -245,8 +299,8 @@ export function CalculateAveragedDifferentialHeadings(differentialHeadings: numb
 			sumHeading = sumHeading + differentialHeadings[i + 1] + differentialHeadings[i - 1];
 		}
 
-		let pathAveragedHeading = sumHeading / (2*numberOfHeadingsToAverage + 1)
-		averagedHeadings[i] = pathAveragedHeading;
+		let averagedHeading = sumHeading / (2*numberOfHeadingsToAverage + 1)
+		averagedHeadings[i] = averagedHeading;
 	}
 
 	return averagedHeadings;
