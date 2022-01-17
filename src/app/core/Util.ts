@@ -125,43 +125,62 @@ export function OptimizeStraightSection(straightSection: Section, headings: numb
 			als = als + distances[index] * Math.sin(thetaInRadians);
 		}
 
-		if (als < currentMinimumAlsValue) {
+		if (Math.abs(als) < Math.abs(currentMinimumAlsValue)) {
+			currentMinimumAlsValue = als;
 			currentOptimimPathAveragedHeadingValue = potentialPathAveragedHeading;
 		}
 
-		potentialPathAveragedHeading = potentialPathAveragedHeading + 0.1;
+		potentialPathAveragedHeading = potentialPathAveragedHeading + (0.01 * straightSection.PathAveragedHeading);
 	}
 
-	straightSection.PathAveragedHeading = currentOptimimPathAveragedHeadingValue;
+	// straightSection.PathAveragedHeading = currentOptimimPathAveragedHeadingValue;
+	straightSection.OptimizedPathAveragedHeading = currentOptimimPathAveragedHeadingValue;
 }
 
 export function OptimizeCurveSection(curveSection: Section, headings: number[], distances: number[]) {
-	// we will try to find the optimum PAH value between 0.9PAH to 1.1PAH. PAH which produces the min ALS
+	// we will try to find the optimum PAS value between 0.9PAS to 1.1PAS. PAS which produces the min ALS
 	// is the optimum PAH value.
-	const pathAveragedHeadingMaxValue = 1.1 * curveSection.PathAveragedHeading;
-	const pathAveragedHeadingMinValue = 0.9 * curveSection.PathAveragedHeading;
+	const pathAveragedSlopeMaxValue = 1.1 * curveSection.PathAvergaedSlope;
+	const pathAveragedSlopeMinValue = 0.9 * curveSection.PathAvergaedSlope;
 
-	let currentOptimimPathAveragedHeadingValue = curveSection.PathAveragedHeading;
+	const initialHeadingMaxValue = 1.1 * curveSection.InitialHeading;
+	const initialHeadingMinValue = 0.9 * curveSection.InitialHeading;
+
+	let currentOptimimInitialHeadingValue = curveSection.InitialHeading;
+	let currentOptimimPathAveragedSlopeValue = curveSection.PathAvergaedSlope;
+
 	let currentMinimumAlsValue = Number.MAX_VALUE;
 	
-	let potentialPathAveragedHeading = pathAveragedHeadingMinValue;
-	while (potentialPathAveragedHeading <= pathAveragedHeadingMaxValue) {
-		let als = 0;
-		for (let index = curveSection.StartIndex + 1; index <= curveSection.EndIndex; index++) {
-			let headingAtPoint = headings[index];
+	let potentialPathAveragedSlope = curveSection.PathAvergaedSlope >= 0 ? pathAveragedSlopeMinValue: pathAveragedSlopeMaxValue;
+	while (potentialPathAveragedSlope <= (curveSection.PathAvergaedSlope >= 0 ? pathAveragedSlopeMaxValue: pathAveragedSlopeMinValue)) {
+		
+		let potentialInitialHeadingValue = initialHeadingMinValue;
+		while (potentialInitialHeadingValue <= initialHeadingMaxValue) {
+			let als = 0;
+			for (let index = curveSection.StartIndex + 1; index <= curveSection.EndIndex; index++) {
+				let headingAtPoint = headings[index];
+	
+				// WARN: there is a sign difference between the doc and code implementation
+				let href_k = potentialInitialHeadingValue + distances[index]*potentialPathAveragedSlope; 
+				let theta = headingAtPoint - href_k;
+				let thetaInRadians = theta * Math.PI / 180;
+				als = als + distances[index] * Math.sin(thetaInRadians);
+			}
+	
+			if (Math.abs(als) < Math.abs(currentMinimumAlsValue)) {
+				currentMinimumAlsValue = als;
+				currentOptimimPathAveragedSlopeValue = potentialPathAveragedSlope;
+				currentOptimimInitialHeadingValue = potentialInitialHeadingValue;
+			}
 
-			// WARN: there is a sign difference between the doc and code implementation
-			let theta = headingAtPoint - potentialPathAveragedHeading; // whats the unit here? degrees?
-			let thetaInRadians = theta * Math.PI / 180;
-			als = als + distances[index] * Math.sin(thetaInRadians);
-		}
+			potentialInitialHeadingValue = potentialInitialHeadingValue + (0.01 * curveSection.InitialHeading);
+		}		
 
-		if (Math.abs(als) < Math.abs(currentMinimumAlsValue)) {
-			currentOptimimPathAveragedHeadingValue = potentialPathAveragedHeading;
-		}
+		potentialPathAveragedSlope = potentialPathAveragedSlope + Math.abs(0.01* curveSection.PathAvergaedSlope);
 	}
 
-	return currentOptimimPathAveragedHeadingValue;
+	curveSection.OptimizedInitialHeading = currentOptimimInitialHeadingValue;
+	curveSection.OptimizedPathAvergaedSlope = currentOptimimPathAveragedSlopeValue;
 }
 
 // Not exactly sure what dh1 represents but its used in calculation of straight sections.
@@ -416,12 +435,12 @@ export function ApplySmoothingfilter(input: number[], cutOffFrequency1: number, 
 		fftImag[fs-i+1] = fftImag[fs-i+1]*f_f;
 	}
 
-	var smoothedData = fft.inverse(fftReal, fftImag);
+	var smoothedData: number[] = fft.inverse(fftReal, fftImag);
 	for (let index = 0; index < smoothedData.length; index++) {
 		smoothedData[index] = Math.abs(smoothedData[index]);
 	}
 
-	return smoothedData;
+	return smoothedData.slice(0, input.length);
 }
 
 function FindStartOfStraightSection(start: number, dh1: number[])

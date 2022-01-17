@@ -2,7 +2,7 @@
     /**A wrapper to keep all list of double arrays needed to generate road sections. */
 
 import { Snapshot } from "./Snapshot";
-import { ApplySmoothingfilter, AreSnapshotsOnSamePoint, CalculateAveragedDifferentialHeadings, CalculatePathAveragedDifferentialHeading, CalculatePathAveragedHeading, CalculatePathAveragedSlope, GetAllNonStraightSections, GetStraightSections, PathAveragedDifferentialHeadingReselect } from "./Util";
+import { ApplySmoothingfilter, AreSnapshotsOnSamePoint, CalculateAveragedDifferentialHeadings, CalculatePathAveragedDifferentialHeading, CalculatePathAveragedHeading, CalculatePathAveragedSlope, GetAllNonStraightSections, GetStraightSections, OptimizeCurveSection, OptimizeStraightSection, PathAveragedDifferentialHeadingReselect } from "./Util";
 import { headingDistanceTo } from 'geolocation-utils'
 import { Section, SectionType } from "./Section";
 
@@ -161,7 +161,7 @@ import { Section, SectionType } from "./Section";
 				} else {
 					this.StraightSections.push(currentStraightSection);
 				}
-			}
+			}			
 			
 			// Now we have all straight sections, everything in between straight sections is a curve section (curve section is further sub-divided in
 			// TransientSections on left and right and true curve section)
@@ -186,21 +186,35 @@ import { Section, SectionType } from "./Section";
 
 				let pathAveragedSlopeForCurveSection = CalculatePathAveragedSlope(trueCurveSection, this.Slopes, this.Distances, this.AccumulativeDistances);
 				trueCurveSection.PathAvergaedSlope = pathAveragedSlopeForCurveSection;
+				trueCurveSection.InitialHeading = this.OutHeadings[trueCurveSection.StartIndex];
 
 				// now we have curve section, the sections to the right and left are transient sections.
 				let leftTransientSection = new Section(rawNonStraightSection.StartIndex, trueCurveSection.StartIndex, SectionType.Transient);
 				let pathAveragedSlopeForLeftTransientSection = CalculatePathAveragedSlope(leftTransientSection, this.Slopes, this.Distances, this.AccumulativeDistances);
 				leftTransientSection.PathAvergaedSlope = pathAveragedSlopeForLeftTransientSection;
+				leftTransientSection.InitialHeading = this.OutHeadings[leftTransientSection.StartIndex];
 
 				let rightTransientSection = new Section(trueCurveSection.EndIndex, rawNonStraightSection.EndIndex, SectionType.Transient);
 				let pathAveragedSlopeForRightTransientSection = CalculatePathAveragedSlope(rightTransientSection, this.Slopes, this.Distances, this.AccumulativeDistances);
 				rightTransientSection.PathAvergaedSlope = pathAveragedSlopeForRightTransientSection;
-				
+				rightTransientSection.InitialHeading = this.OutHeadings[rightTransientSection.StartIndex];
+
 				this.AllSections.push(leftTransientSection);
 				this.AllSections.push(trueCurveSection);
 				this.AllSections.push(rightTransientSection);
 				this.AllSections.push(currentStraightSection);
 			}
+
+
+			// Optimize straight sections
+			this.AllSections.forEach(section => {
+				if (section.SectionType === SectionType.Straight) {
+					OptimizeStraightSection(section, this.SmoothedHeading, this.Distances);
+				} else {
+					OptimizeCurveSection(section, this.SmoothedHeading, this.Distances);
+				}
+			});
+
 
 
 			// const dh1 = GetDH1(this.DifferentialHeadings);
