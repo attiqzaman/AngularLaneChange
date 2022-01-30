@@ -4,6 +4,10 @@ export class Section {
 		this.StartIndex = startIndex;
 		this.EndIndex = endIndex;
 		this.SectionType = sectionType;
+		this.StartLatitude = NaN;
+        this.StartLongitude = NaN;
+		this.EndLatitude = NaN;
+        this.EndLongitude = NaN;
 		this.PathAveragedHeading = NaN;
 		this.PathAvergaedSlope = NaN;
 		this.InitialHeading = NaN;
@@ -19,6 +23,10 @@ export class Section {
 
 	StartIndex: number;
 	EndIndex: number;
+	StartLatitude: number;
+    StartLongitude: number;
+	EndLatitude: number;
+    EndLongitude: number;
 	SectionType: SectionType;
 	PathAveragedHeading: number;
 	PathAvergaedSlope: number;

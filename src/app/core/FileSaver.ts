@@ -1,6 +1,6 @@
 import { ProcessedRouteWrapper } from "./ProcessedRouteWrapper";
 import { saveAs } from 'file-saver';
-import {formatDate} from '@angular/common';
+import { formatDate } from '@angular/common';
 import { Section, SectionType } from "./Section";
 
 export function PrintRoute(route: ProcessedRouteWrapper)
@@ -11,10 +11,10 @@ export function PrintRoute(route: ProcessedRouteWrapper)
 	fileName = `${route.UserId}_${route.cutOffFrequency1}_${route.cutOffFrequency2}_${currentTime}.csv`;
 
 	let allRows: string[] = [];
-	allRows.push(`lat, long, distance, accumulated distance, raw heading, smoothed heading, section type, PAH/IH, optimized PAH/IH, PAHS, optimized PAHS`);
+	allRows.push(`lat, long, distance, accumulated distance, raw heading, smoothed heading, 3*slope + prev_heading, opt 3*slope + prev_heading, section type, PAH/IH, optimized PAH/IH, PAHS, optimized PAHS`);
 	for (let index = 1; index < route.Distances.length; index++) {
-		let currentSection = getSection(route.AllSections, index);
-		let sectionDetails = getSectionDetailsInCsvFormat(currentSection);
+		
+		let sectionDetails = getSectionDetailsInCsvFormat(index, route.AllSections, route.SmoothedHeading);
 
 		allRows.push(`${route.Latitudes[index]}, ${route.Longitudes[index]},` +
 		`${route.Distances[index]}, ${route.AccumulativeDistances[index]},` +
@@ -25,16 +25,26 @@ export function PrintRoute(route: ProcessedRouteWrapper)
     saveAs(data, fileName);
 }
 
-function getSectionDetailsInCsvFormat(section: Section|null): string {
+function getSectionDetailsInCsvFormat(index: number, sections: Section[], headings: number[]): string {
+	let section = getSection(sections, index);
+
 	if (section === null) {
-		return `NA, NA, NA, NA, NA`
+		return `NA, NA, NA, NA, NA, NA, NA`
 	}
 
 	if (section.SectionType === SectionType.Straight) {
-		return `${section.SectionType}, ${section.PathAveragedHeading}, ${section.OptimizedPathAveragedHeading}, NA, NA`
+		return `NA, NA, ${section.SectionType}, ${section.PathAveragedHeading}, ${section.OptimizedPathAveragedHeading}, NA, NA`
 	}
 
-	return `${section.SectionType}, ${section.InitialHeading}, ${section.OptimizedInitialHeading}, ${section.PathAvergaedSlope}, ${section.OptimizedPathAvergaedSlope}`
+	if (index === section.StartIndex) {
+		let three_slope = headings[index - 1];
+		let opt_three_slope = headings[index - 1];
+		return `${three_slope}, ${opt_three_slope}, ${section.SectionType}, ${section.InitialHeading}, ${section.OptimizedInitialHeading}, ${section.PathAvergaedSlope}, ${section.OptimizedPathAvergaedSlope}`
+	}
+
+	let three_slope = 3*section.PathAvergaedSlope + headings[index - 1];
+	let opt_three_slope = 3*section.OptimizedPathAvergaedSlope + headings[index - 1];
+	return `${three_slope}, ${opt_three_slope}, ${section.SectionType}, ${section.InitialHeading}, ${section.OptimizedInitialHeading}, ${section.PathAvergaedSlope}, ${section.OptimizedPathAvergaedSlope}`
 }
 
 function getSection(allSections: Section[], index: number): Section|null {

@@ -138,34 +138,38 @@ import { Section, SectionType } from "./Section";
 
 			this.AveragedDifferentialHeadings = CalculateAveragedDifferentialHeadings(this.DifferentialHeadings);
 			let straightSections = GetStraightSections(this.AveragedDifferentialHeadings);
-			straightSections.forEach(section => {
-				let pathAveragedHeading = CalculatePathAveragedHeading(section, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
-				section.PathAveragedHeading = pathAveragedHeading;
-			});
-			// this.PathAveragedHeadings = CalculatePathAveragedHeadings(this.StraightSections, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
 
 			// TODO: post-process straight sections if needed e.g.
 			// * any spot between straight sections which is less than 50 m (parameterised) then its single straight section
 			// * if the spot between straight sections is alittle more than 50 meters then we compare the PAH of both straight
 			// sections and if its less than a threhold (0.1 m/degree) then we consider that one single straight section
-			const MinimumPointsBetweenStraightSections = 15;
-			this.StraightSections.push(straightSections[0]);
-			// let previousStraightSection = straightSections[0];
+			const MinimumPointsBetweenStraightSections = 25;
+
+			let previousStraightSectionPointer = 0;
 			for (let i = 1; i < straightSections.length; i++) {
 				const currentStraightSection = straightSections[i];
-				const previousStraightSection = this.StraightSections[this.StraightSections.length - 1];
+				const previousStraightSection = straightSections[previousStraightSectionPointer];
 
 				if (currentStraightSection.StartIndex - previousStraightSection.EndIndex < MinimumPointsBetweenStraightSections) {
 					previousStraightSection.EndIndex = currentStraightSection.EndIndex;
-					// should we worry about pathAveragedHeading here?
+					// Remove last section from array
+					delete straightSections[i];
 				} else {
-					this.StraightSections.push(currentStraightSection);
+					// typescript deletes the object and sets the array[j] value with undefined object so we need to handle that.
+					for (let j = previousStraightSectionPointer + 1; j < straightSections.length; j++) {
+						if (straightSections[j] !== undefined) {
+							previousStraightSectionPointer = j;
+							break;
+						}	
+					}
 				}
 			}			
 			
-			// Now we have all straight sections, everything in between straight sections is a curve section (curve section is further sub-divided in
-			// TransientSections on left and right and true curve section)
-			let allNonStraightSections = GetAllNonStraightSections(this.StraightSections);
+			straightSections.forEach(section => {
+				let pathAveragedHeading = CalculatePathAveragedHeading(section, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
+				section.PathAveragedHeading = pathAveragedHeading;
+				this.StraightSections.push(section);
+			});
 
 			this.AllSections.push(this.StraightSections[0])
 			// Assume our path starts and ends at a straight section for now.
@@ -173,7 +177,7 @@ import { Section, SectionType } from "./Section";
 				const currentStraightSection = this.StraightSections[i];
 				const previousStraightSection = this.StraightSections[i - 1];
 				
-				let rawNonStraightSection = new Section(previousStraightSection.EndIndex, currentStraightSection.StartIndex + 1, SectionType.Unknown);
+				let rawNonStraightSection = new Section(previousStraightSection.EndIndex, currentStraightSection.StartIndex, SectionType.Unknown);
 				
 				// we need to process this section more to get the transient sections
 				let pathAveragedDifferentialHeading1 = CalculatePathAveragedDifferentialHeading(rawNonStraightSection, this.AveragedDifferentialHeadings, this.Distances, this.AccumulativeDistances);
@@ -186,18 +190,18 @@ import { Section, SectionType } from "./Section";
 
 				let pathAveragedSlopeForCurveSection = CalculatePathAveragedSlope(trueCurveSection, this.Slopes, this.Distances, this.AccumulativeDistances);
 				trueCurveSection.PathAvergaedSlope = pathAveragedSlopeForCurveSection;
-				trueCurveSection.InitialHeading = this.OutHeadings[trueCurveSection.StartIndex];
+				trueCurveSection.InitialHeading = this.SmoothedHeading[trueCurveSection.StartIndex + 1];
 
 				// now we have curve section, the sections to the right and left are transient sections.
 				let leftTransientSection = new Section(rawNonStraightSection.StartIndex, trueCurveSection.StartIndex, SectionType.Transient);
 				let pathAveragedSlopeForLeftTransientSection = CalculatePathAveragedSlope(leftTransientSection, this.Slopes, this.Distances, this.AccumulativeDistances);
 				leftTransientSection.PathAvergaedSlope = pathAveragedSlopeForLeftTransientSection;
-				leftTransientSection.InitialHeading = this.OutHeadings[leftTransientSection.StartIndex];
+				leftTransientSection.InitialHeading = this.SmoothedHeading[leftTransientSection.StartIndex + 1];
 
 				let rightTransientSection = new Section(trueCurveSection.EndIndex, rawNonStraightSection.EndIndex, SectionType.Transient);
 				let pathAveragedSlopeForRightTransientSection = CalculatePathAveragedSlope(rightTransientSection, this.Slopes, this.Distances, this.AccumulativeDistances);
 				rightTransientSection.PathAvergaedSlope = pathAveragedSlopeForRightTransientSection;
-				rightTransientSection.InitialHeading = this.OutHeadings[rightTransientSection.StartIndex];
+				rightTransientSection.InitialHeading = this.SmoothedHeading[rightTransientSection.StartIndex + 1];
 
 				this.AllSections.push(leftTransientSection);
 				this.AllSections.push(trueCurveSection);
@@ -210,8 +214,12 @@ import { Section, SectionType } from "./Section";
 			this.AllSections.forEach(section => {
 				if (section.SectionType === SectionType.Straight) {
 					OptimizeStraightSection(section, this.SmoothedHeading, this.Distances);
+					section.StartLatitude = this.Latitudes[section.StartIndex];
+					section.StartLongitude = this.Longitudes[section.StartIndex];
+					section.EndLatitude = this.Latitudes[section.EndIndex];
+					section.EndLongitude = this.Longitudes[section.EndIndex];
 				} else {
-					OptimizeCurveSection(section, this.SmoothedHeading, this.Distances);
+					OptimizeCurveSection(section, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
 				}
 			});
 
