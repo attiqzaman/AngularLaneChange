@@ -214,13 +214,14 @@ import { Section, SectionType } from "./Section";
 			this.AllSections.forEach(section => {
 				if (section.SectionType === SectionType.Straight) {
 					OptimizeStraightSection(section, this.SmoothedHeading, this.Distances);
+				} else {
+					OptimizeCurveSection(section, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
+				}
+
 					section.StartLatitude = this.Latitudes[section.StartIndex];
 					section.StartLongitude = this.Longitudes[section.StartIndex];
 					section.EndLatitude = this.Latitudes[section.EndIndex];
 					section.EndLongitude = this.Longitudes[section.EndIndex];
-				} else {
-					OptimizeCurveSection(section, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
-				}
 			});
 
 
