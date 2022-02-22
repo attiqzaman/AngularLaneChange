@@ -44,3 +44,5 @@ testem.log
 .DS_Store
 Thumbs.db
 /.vs/slnx.sqlite
+/.vs/AngularLaneChange/v16/.suo
+/.vs/AngularLaneChange/config/applicationhost.config
