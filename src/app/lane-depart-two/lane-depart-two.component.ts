@@ -11,5 +11,10 @@ export class LaneDepartTwoComponent implements OnInit {
 
   ngOnInit(): void {
   }
-
+  drawRoute() {
+    alert("DRAW ROUTE")
+  }
+  drawPoints() {
+    alert("DRAW POINTS")
+  }
 }

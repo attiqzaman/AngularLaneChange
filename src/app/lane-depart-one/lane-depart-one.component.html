@@ -1,43 +1,45 @@
 <div class="location-container">
 
     <div class="search-location">
-        <div class="form-group">
-            <label for="firstButton">Start Location</label>
-            <div class="input-group mb-3">
-                <input type="text" class="form-control" placeholder="Start Location" id="firstDir">
-                <div class="input-group-append">
-                    <span class="btn btn-primary input-group-text" id="firstButton">Get</span>
+        <div class="side-nav-custom custom-scroll">
+            <div class="form-group">
+                <label for="firstButton">Start Location</label>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="Start Location" id="firstDir">
+                    <div class="input-group-append">
+                        <span class="btn btn-primary input-group-text" id="firstButton">Get</span>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="form-group">
-            <label for="secondButton">End Location</label>
-            <div class="input-group mb-3">
-                <input type="text" class="form-control" placeholder="End Location" id="secondDir">
-                <div class="input-group-append">
-                    <span class="btn btn-primary input-group-text" id="secondButton">Get</span>
+            <div class="form-group">
+                <label for="secondButton">End Location</label>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="End Location" id="secondDir">
+                    <div class="input-group-append">
+                        <span class="btn btn-primary input-group-text" id="secondButton">Get</span>
+                    </div>
                 </div>
             </div>
-        </div>
-        <button class="btn btn-primary btn-block w-100" id="drawRoute">Draw Route </button>
-        <hr/>
-        <button class="btn btn-primary btn-block w-100" id="drawPoints">Draw Points </button>
-        <hr/>
-        <div class="form-group">
-            <label >Point Of Interest</label>
-            <div class="input-group mb-3">
-                <input type="text" class="form-control" placeholder="Point Of Interest" id="pointOfInterest">
+            <button class="btn btn-primary btn-block w-100" id="drawRoute">Draw Route </button>
+            <hr/>
+            <button class="btn btn-primary btn-block w-100" id="drawPoints">Draw Points </button>
+            <hr/>
+            <div class="form-group">
+                <label >Point Of Interest</label>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="Point Of Interest" id="pointOfInterest">
+                </div>
             </div>
-        </div>
-        <button class="btn btn-primary btn-block w-100" id="drawSomePoints">Draw Relative Points</button>
-        <hr/>
-        <div class="form-group">
-            <label>Add cut-off freq1 and freq2</label>
-            <div class="input-group mb-3">
-                <input type="text" class="form-control" placeholder="20, 125" id="LowPassFilterParameters" value="20, 125">
+            <button class="btn btn-primary btn-block w-100" id="drawSomePoints">Draw Relative Points</button>
+            <hr/>
+            <div class="form-group">
+                <label>Add cut-off freq1 and freq2</label>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="20, 125" id="LowPassFilterParameters" value="20, 125">
+                </div>
             </div>
+            <button class="btn btn-primary btn-block w-100" id="downloadProcessedFile">Download CSV File</button>
         </div>
-        <button class="btn btn-primary btn-block w-100" id="downloadProcessedFile">Download CSV File</button>
     </div>
     <div class="maps">
         <div id="map">
