@@ -124,28 +124,37 @@ export class LaneDepartureRoutine {
 	GetSectionOfVehicle(latitude: number, longitude: number, allSections: Section[]): Section | undefined
 	{
 		const change: number = 0.0005;
+		var sectionsFound = this.FindSections(latitude, longitude, allSections, change);
+		
+		if (sectionsFound.length > 1)
+		{
+			let i = 0;
+			while (sectionsFound.length > 1)
+			{
+				i = i + 0.0001;
+				sectionsFound = this.FindSections(latitude, longitude, allSections, change);
+				if (sectionsFound.length == 0)
+				{
+					i = i - 0.0001;
+					sectionsFound = this.FindSections(latitude, longitude, allSections, change);
+					break;
+				}
+			}
+		}
+
+		return sectionsFound.length > 0 ? sectionsFound[0] : undefined;
+	}
+
+	FindSections(latitude: number, longitude: number, allSections: Section[], change: number): Section[]
+	{
+		var sectionsFound: Section[] = [];
 		for (var section of allSections)
 		{
-			let minLatitude: number;
-			let maxLatitude: number;
-			let minLongitude: number;
-			let maxLongitude: number;
-			
-			if (section.EndLatitude >= section.StartLatitude) {
-				minLatitude = section.StartLatitude;
-				maxLatitude = section.EndLatitude; 
-			} else {
-				minLatitude = section.EndLatitude;
-				maxLatitude = section.StartLatitude; 
-			}
+			var minLatitude = section.EndLatitude >= section.StartLatitude ? section.StartLatitude : section.EndLatitude;
+			var maxLatitude = minLatitude == section.StartLatitude ? section.EndLatitude : section.StartLatitude;
 
-			if (section.EndLongitude >= section.EndLongitude) {
-				minLongitude = section.StartLongitude;
-				maxLongitude = section.EndLongitude; 
-			} else {
-				minLongitude = section.EndLongitude;
-				maxLongitude = section.StartLongitude; 
-			}
+			var minLongitude = section.EndLongitude >= section.StartLongitude ? section.StartLongitude : section.EndLongitude;
+			var maxLongitude = minLongitude == section.StartLongitude ? section.EndLongitude : section.StartLongitude;
 
 			minLatitude = minLatitude - change;
 			maxLatitude = maxLatitude + change;
@@ -154,11 +163,11 @@ export class LaneDepartureRoutine {
 
 			if (latitude <= maxLatitude && latitude >= minLatitude && longitude <= maxLongitude && longitude >= minLongitude)
 			{
-				return section;
+				sectionsFound.push(section);
 			}
 		}
 
-		return undefined;
+		return sectionsFound;
 	}
 }
 
