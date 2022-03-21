@@ -3,6 +3,12 @@
         <button class="btn btn-primary btn-block w-100" (click)="drawRoute()">Draw Route </button>
         <hr/>
         <button class="btn btn-primary btn-block w-100" (click)="drawPoints()">Draw Points </button>
+        <div class="form-group">
+            <label for="file">Choose File</label>
+            <input type="file"
+                   id="file" accept="application/JSON"
+                   (change)="onFileChanged($event)">
+        </div>
     </div>
     <!-- <div class="search-location">
         <div class="form-group">

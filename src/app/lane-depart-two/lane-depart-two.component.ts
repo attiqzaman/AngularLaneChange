@@ -17,4 +17,16 @@ export class LaneDepartTwoComponent implements OnInit {
   drawPoints() {
     alert("DRAW POINTS")
   }
+  onFileChanged(event: any) {
+    const selectedFile = event.target.files[0];
+    const fileReader = new FileReader();
+    fileReader.readAsText(selectedFile, "UTF-8");
+    fileReader.onload = () => {
+     const a = JSON.parse(fileReader.result as any);
+     console.log(a);
+    }
+    fileReader.onerror = (error) => {
+      console.log(error);
+    }
+  }
 }
