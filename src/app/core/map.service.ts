@@ -3,40 +3,54 @@ import { Injectable } from '@angular/core';
 import { headingDistanceTo } from 'geolocation-utils'
 import { ProcessedRouteWrapper } from './ProcessedRouteWrapper';
 import { ConvertLatLngToSnapshots } from './Util';
-import { PrintRoute } from './FileSaver';
-import { SectionType } from './Section';
+import { PrintRoute, PrintSections } from './FileSaver';
+import { Section, SectionType } from './Section';
+import { NumberSymbol } from '@angular/common';
+import { Snapshot } from './Snapshot';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MapService {
 
+	map!: google.maps.Map;
+
 	constructor() { }
+
+	setMap(lat: NumberSymbol, lng: number): void {
+		this.map = new google.maps.Map(
+			document.getElementById("map") as HTMLElement,
+			{
+				zoom: 8,
+				center: { lat: lat, lng: lng },
+			}
+		);
+	}
 
 	initMap(): void {		
 		var mark = null;
 		var latLng: google.maps.LatLng;
-		let startLatLng = new google.maps.LatLng(46.79936531, -92.07639564);
-		let endLatLng = new google.maps.LatLng(46.72623549, -92.21377368);
+		let startLatLng = new google.maps.LatLng(46.6997675, -92.418003);
+		let endLatLng = new google.maps.LatLng(46.5396788,-92.6232759);
 		let pointOfInterestLatLng = new google.maps.LatLng(46.72623549, -92.21377368);
 
 		const directionsService = new google.maps.DirectionsService();
 		const directionsRenderer = new google.maps.DirectionsRenderer();
-		const map = new google.maps.Map(
+		this.map = new google.maps.Map(
 			document.getElementById("map") as HTMLElement,
 			{
 				zoom: 6,
-				center: { lat: 46.79936531, lng: -92.07639564 },
+				center: { lat: 46.6997675, lng: -92.418003 },
 			}
 		);
-		directionsRenderer.setMap(map);
+		directionsRenderer.setMap(this.map);
 
-		map.addListener('click', (event: any) => {
+		this.map.addListener('click', (event: any) => {
 			latLng = event.latLng;
-			addMarker(event.latLng);
+			addMarker(event.latLng, this.map);
 		});
 
-		function addMarker(location: google.maps.LatLngLiteral) {
+		function addMarker(location: google.maps.LatLngLiteral,  map: google.maps.Map<Element>) {
 			mark = new google.maps.Marker({
 				position: location,
 				map: map,
@@ -44,7 +58,7 @@ export class MapService {
 		}
 
 		const drawRouteListener = () => {
-			this.calculateAndDisplayRoute(directionsService, directionsRenderer, map, startLatLng, endLatLng, "None");
+			this.calculateAndDisplayRoute(directionsService, directionsRenderer, this.map, startLatLng, endLatLng, "None");
 		};
 		document.getElementById("drawRoute")?.addEventListener(
 			"click",
@@ -52,7 +66,7 @@ export class MapService {
 		);
 
 		const drawPointsListener = () => {
-			this.calculateAndDisplayRoute(directionsService, directionsRenderer, map, startLatLng, endLatLng, "All");
+			this.calculateAndDisplayRoute(directionsService, directionsRenderer, this.map, startLatLng, endLatLng, "All");
 		};
 		document.getElementById("drawPoints")?.addEventListener(
 			"click",
@@ -65,7 +79,7 @@ export class MapService {
 			pointOfInterestLatLng = new google.maps.LatLng(Number(latLongArray[0].trim()), Number(latLongArray[1].trim()));
 			// (document.getElementById("firstDir") as HTMLInputElement).value = JSON.stringify(startLatLng.toJSON(), null, 2);
 			console.log(pointOfInterestLatLng);
-			this.calculateAndDisplayRoute(directionsService, directionsRenderer, map, startLatLng, endLatLng, "PointsOfInterest", pointOfInterestLatLng);
+			this.calculateAndDisplayRoute(directionsService, directionsRenderer, this.map, startLatLng, endLatLng, "PointsOfInterest", pointOfInterestLatLng);
 		};
 		document.getElementById("drawSomePoints")?.addEventListener(
 			"click",
@@ -74,7 +88,7 @@ export class MapService {
 
 		const on1stBtnClickHandler = () => {
 			startLatLng = latLng;
-			startLatLng = new google.maps.LatLng(46.70342247,-92.29975626);
+			// startLatLng = new google.maps.LatLng(46.70342247,-92.29975626);
 			(document.getElementById("firstDir") as HTMLInputElement).value = JSON.stringify(startLatLng.toJSON(), null, 2);
 		};
 		document.getElementById("firstButton")?.addEventListener(
@@ -84,7 +98,7 @@ export class MapService {
 
 		const on2ndBtnClickHandler = () => {
 			endLatLng = latLng;
-			endLatLng = new google.maps.LatLng(46.72606103,-92.21761955);
+			// endLatLng = new google.maps.LatLng(46.72606103,-92.21761955);
 
 			(document.getElementById("secondDir") as HTMLInputElement).value = JSON.stringify(endLatLng.toJSON(), null, 2);
 		};
@@ -98,7 +112,7 @@ export class MapService {
 			let cutOffFrequency1 = Number(rawParameters[0].trim());
 			let cutOffFrequency2 = Number(rawParameters[1].trim());
 
-			this.calculateAndDisplayRoute(directionsService, directionsRenderer, map, startLatLng, endLatLng, "downloadProcessedFile", undefined, cutOffFrequency1, cutOffFrequency2);
+			this.calculateAndDisplayRoute(directionsService, directionsRenderer, this.map, startLatLng, endLatLng, "downloadProcessedFile", undefined, cutOffFrequency1, cutOffFrequency2);
 		};
 		document.getElementById("downloadProcessedFile")?.addEventListener(
 			"click",
@@ -238,41 +252,46 @@ export class MapService {
 								{ lat: route.Latitudes[section.EndIndex], lng: route.Longitudes[section.EndIndex] },
 							]
 
-							let strokeColor = '';
-							switch (section.SectionType) {
-								case SectionType.Straight:
-									strokeColor = 'red';
-									break;
-								case SectionType.Curved:
-									strokeColor = 'blue';
-									break;
-								case SectionType.Transient:
-									strokeColor = 'green';
-									break
-								default:
-									strokeColor = 'white';
-									break;
-							}
-							
-							var path = new google.maps.Polyline({
-								path: drawLine,
-								geodesic: true,
-								strokeColor: strokeColor,
-								strokeOpacity: 1.0,
-								strokeWeight: 4,
-							});
-
-							// directionsRenderer.setMap(null);
-							path.setMap(map);	
+							this.drawLine(section.SectionType, drawLine, map);	
 						});			
 
-						PrintRoute(route);
+						// PrintRoute(route);
+						PrintSections(route);
 						break;
 					default:
 						directionsRenderer.setDirections(response);
 				}
 			});
 			// .catch((e: any) => window.alert("Directions request failed due to " + status));
+	}
+
+	drawLine(sectionType: SectionType, drawLine: { lat: number; lng: number; }[], map: google.maps.Map<Element>) {
+		let strokeColor = '';
+		switch (sectionType) {
+			case SectionType.Straight:
+				strokeColor = 'red';
+				break;
+			case SectionType.Curved:
+				strokeColor = 'blue';
+				break;
+			case SectionType.Transient:
+				strokeColor = 'green';
+				break;
+			default:
+				strokeColor = 'white';
+				break;
+		}
+
+		var path = new google.maps.Polyline({
+			path: drawLine,
+			geodesic: true,
+			strokeColor: strokeColor,
+			strokeOpacity: 1.0,
+			strokeWeight: 4,
+		});
+
+		// directionsRenderer.setMap(null);
+		path.setMap(map);
 	}
 
 	drawPoint(pt: google.maps.LatLng, map: google.maps.Map<Element>) {
@@ -291,6 +310,110 @@ export class MapService {
 
 		// To add the marker to the map, call setMap();
 		marker.setMap(map);
+	}
+
+	drawPointWithColor(pt: google.maps.LatLng, color: string) {
+
+		var infowindow = new google.maps.InfoWindow({
+			content: pt.lat() + ` ` + pt.lng()
+		});
+
+		var marker = new google.maps.Marker({
+			position: pt,
+			icon: {
+				path: google.maps.SymbolPath.CIRCLE,
+				fillColor: color,
+				fillOpacity: 0.6,
+				strokeColor: color,
+				strokeOpacity: 0.9,
+				strokeWeight: 1,
+				scale: 3
+			}
+		});
+
+		marker.addListener("click", () => {
+			infowindow.open(this.map, marker);
+		  });
+
+		// To add the marker to the map, call setMap();
+		marker.setMap(this.map);
+	}
+
+	drawPointWithColorAnData(snapshot: Snapshot, color: string) {
+
+		let pt = new google.maps.LatLng(snapshot.Latitude, snapshot.Longitude);
+		var infowindow = new google.maps.InfoWindow({
+			content: pt.lat() + ` ` + pt.lng() + ` ` + snapshot.SnapshotNumber
+		});
+
+		var marker = new google.maps.Marker({
+			position: pt,
+			icon: {
+				path: google.maps.SymbolPath.CIRCLE,
+				fillColor: color,
+				fillOpacity: 0.6,
+				strokeColor: color,
+				strokeOpacity: 0.9,
+				strokeWeight: 1,
+				scale: 3
+			}
+		});
+
+		marker.addListener("click", () => {
+			infowindow.open(this.map, marker);
+		  });
+
+		// To add the marker to the map, call setMap();
+		marker.setMap(this.map);
+	}
+
+	drawPolygonsColor(section: Section, color: string) {
+
+		const change: number = 0.0005;
+		let minLatitude: number;
+			let maxLatitude: number;
+			let minLongitude: number;
+			let maxLongitude: number;
+			
+			if (section.EndLatitude >= section.StartLatitude) {
+				minLatitude = section.StartLatitude;
+				maxLatitude = section.EndLatitude; 
+			} else {
+				minLatitude = section.EndLatitude;
+				maxLatitude = section.StartLatitude; 
+			}
+
+			if (section.EndLongitude >= section.EndLongitude) {
+				minLongitude = section.StartLongitude;
+				maxLongitude = section.EndLongitude; 
+			} else {
+				minLongitude = section.EndLongitude;
+				maxLongitude = section.StartLongitude; 
+			}
+
+			minLatitude = minLatitude - change;
+			maxLatitude = maxLatitude + change;
+			minLongitude = minLongitude - change;
+			maxLongitude = maxLongitude + change;
+		const triangleCoords = [
+			{ lat: minLatitude, lng: minLongitude },
+			{ lat: maxLatitude, lng: minLongitude },
+			{ lat: maxLatitude, lng: maxLongitude },
+			{ lat: minLatitude, lng: maxLongitude },
+		  ];
+		
+		  // Construct the polygon.
+		  const marker = new google.maps.Polygon({
+			paths: triangleCoords,
+			strokeColor: color,
+			strokeOpacity: 0.8,
+			strokeWeight: 1,
+			fillColor: color,
+			fillOpacity: 0.35,
+		  });
+
+		// To add the marker to the map, call setMap();
+		marker.setMap(this.map);
 	}
 
 
@@ -344,4 +467,6 @@ export class MapService {
 
 		return newList;
 	}
+
+
 }

@@ -1,8 +1,14 @@
 <div class="location-container">
+	<input type="file" class="file-input" (change)="onSectionsFileSelected($event)" #sectionFileUpload>
+	<input type="file" class="file-input" (change)="onRouteFileSelected($event)" #routeFileUpload>
     <div class="search-location p-3">
-        <button class="btn btn-primary btn-block w-100" (click)="drawRoute()">Draw Route </button>
+		{{sections.length > 0 || "No sections file uploaded yet."}}
+        <button class="btn btn-primary btn-block w-100" (click)="sectionFileUpload.click()">Upload Sections </button>
         <hr/>
-        <button class="btn btn-primary btn-block w-100" (click)="drawPoints()">Draw Points </button>
+		{{gpsSnapshots.length > 0 || "No route file uploaded yet."}}
+        <button class="btn btn-primary btn-block w-100" (click)="routeFileUpload.click()">Upload Route </button>
+        <hr/>
+        <button class="btn btn-primary btn-block w-100" (click)="onProcessLaneDepartureWarning()">Execute LDW</button>
     </div>
     <!-- <div class="search-location">
         <div class="form-group">

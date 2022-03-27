@@ -281,12 +281,17 @@ export function ConvertLatLngToSnapshots(points: google.maps.LatLng[]): Snapshot
 	return allSnapshots;
 }
 
+function GetNextPowerOfTwoNumber(input: number): number {
+	let power = Math.ceil(Math.log2(input));
+	return Math.pow(2, power);
+}
+
 export function ApplySmoothingfilter(input: number[], cutOffFrequency1: number, cutOffFrequency2: number): number[] {
 	console.log(`input: ${input}`);
 	
 	var clonedInput  = [...input];
 
-	const fs = 4096;
+	const fs = GetNextPowerOfTwoNumber(clonedInput.length);
 	for (let i = clonedInput.length + 1; i <= fs; i++) {
 		clonedInput.push(0);       
 	}

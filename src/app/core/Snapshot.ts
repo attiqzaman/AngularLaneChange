@@ -9,6 +9,7 @@ export class Snapshot {
         this.IsManipulated = false;
         this.TimeStampAsString = "some time";
         this.Accuracy = 1;
+        this.SnapshotNumber = -1;
     }
 
     GoogleLatitude: number;
@@ -24,5 +25,7 @@ export class Snapshot {
     TimeStampAsString: string;
 
     Accuracy: number;
+
+    SnapshotNumber: number;
 }
 

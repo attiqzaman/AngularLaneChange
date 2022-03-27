@@ -2,6 +2,21 @@ import { ProcessedRouteWrapper } from "./ProcessedRouteWrapper";
 import { saveAs } from 'file-saver';
 import { formatDate } from '@angular/common';
 import { Section, SectionType } from "./Section";
+import { LaneDepartureSnapshot } from "./LaneDepartureSnapshot";
+
+export function PrintSections(route: ProcessedRouteWrapper) {
+	let currentTime = formatDate(new Date, '"MM_dd__hh_mm', 'en-US');
+	var fileName = `${route.UserId}_Sections_${currentTime}.csv`;
+	var blob = new Blob([JSON.stringify(route.AllSections)], {type: "text/plain;charset=utf-8"});
+	saveAs(blob, fileName);
+}
+
+export function PrintLdwSnapshots(snapshots: LaneDepartureSnapshot[]) {
+	let currentTime = formatDate(new Date, '"MM_dd__hh_mm', 'en-US');
+	var fileName = `LDW_${currentTime}.csv`;
+	var blob = new Blob([JSON.stringify(snapshots)], {type: "text/plain;charset=utf-8"});
+	saveAs(blob, fileName);
+}
 
 export function PrintRoute(route: ProcessedRouteWrapper)
 {

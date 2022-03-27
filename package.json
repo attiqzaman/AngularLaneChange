@@ -18,6 +18,8 @@
     "@angular/platform-browser": "~12.0.4",
     "@angular/platform-browser-dynamic": "~12.0.4",
     "@angular/router": "~12.0.4",
+    "@types/validator": "^13.7.1",
+    "class-transformer": "^0.5.1",
     "digitalsignals": "^1.0.0",
     "file-saver": "^2.0.5",
     "geolocation-utils": "^1.2.5",

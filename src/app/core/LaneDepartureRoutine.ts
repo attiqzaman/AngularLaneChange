@@ -1,5 +1,7 @@
 import { distanceTo, headingDistanceTo } from "geolocation-utils";
+import { PrintLdwSnapshots } from "./FileSaver";
 import { LaneDepartureSnapshot } from "./LaneDepartureSnapshot";
+import { MapService } from "./map.service";
 import { Section, SectionType } from "./Section";
 import { Snapshot } from "./Snapshot";
 
@@ -9,15 +11,43 @@ export class LaneDepartureRoutine {
 	// TODO: The DataStructure probably should be a Queue since we only use latest `X` number of elements and we need a mechanism to 
 	// remove the older items. For now I am using arrays since JS/TS doesn't have a built-in queue data structure and this work is throw-away anyway.
 	DataSnapshots: LaneDepartureSnapshot[] = [];
+	Counter: number = 0;
 
-	constructor() {
-		let allSections = this.GetAllSections();
-		const gpsSnapshots = this.GetCoordinates();
-	
+	constructor(allSections: Section[], gpsSnapshots: Snapshot[], mapService: MapService) {
+		// let allSections = this.GetAllSections();
+		// const gpsSnapshots = this.GetCoordinates();
+
+		mapService.initMap();
+		mapService.setMap(gpsSnapshots[0].Latitude, gpsSnapshots[1].Longitude);
+		// allSections.forEach(section => {
+		// 	let drawLine = [
+		// 		{ lat: section.StartLatitude, lng: section.StartLongitude },
+		// 		{ lat: section.EndLatitude, lng: section.EndLongitude },
+		// 	]
+
+		// 	let color = section.SectionType === SectionType.Straight ? 'red': 'blue';
+		// 	// mapService.drawPolygonsColor(section, 'red');
+		// 	// mapService.drawLine(section.SectionType, drawLine, mapService.map);
+		// })
+		// let count = 0;
+		// gpsSnapshots.forEach(gpsSnapshot => {
+		// 	let section = this.GetSectionOfVehicle(gpsSnapshot.Latitude, gpsSnapshot.Longitude, allSections);
+		// 	let pt = new google.maps.LatLng(gpsSnapshot.Latitude, gpsSnapshot.Longitude);
+		// 	let color = section === undefined ? 'red': 'blue';
+		// 	if (section === undefined) {
+		// 		// mapService.drawPointWithColor(pt, color);
+		// 	}
+			
+		// 	mapService.drawPointWithColorAnData(gpsSnapshot, color);
+		// 	count++;
+		// });
+		
 		gpsSnapshots.forEach(gpsSnapshot => {
 			this.ProcessNewGpsSnapshot(gpsSnapshot, allSections);
 			this.PredictLaneDeparture();
 		});
+
+		PrintLdwSnapshots(this.DataSnapshots);
 	}
 
 	// This will basically be the GPS event callback
@@ -36,9 +66,9 @@ export class LaneDepartureRoutine {
 
 		currentDatasnapshot.Distance = headingDistanceFromPreviousSnapshot.distance;
 		currentDatasnapshot.AccumulativeDistance = previousDataSnapshot.AccumulativeDistance + currentDatasnapshot.Distance;
-		currentDatasnapshot.Heading = headingDistanceFromPreviousSnapshot.heading;
+		currentDatasnapshot.Heading = headingDistanceFromPreviousSnapshot.heading + 360;
 
-		if (this.DataSnapshots.length < 3) {
+		if (this.DataSnapshots.length < 5) {
 			this.DataSnapshots.push(currentDatasnapshot);
 			return;
 		}
@@ -48,6 +78,7 @@ export class LaneDepartureRoutine {
 		
 		const currentVahicleSection = this.GetSectionOfVehicle(currentDatasnapshot.Latitude, currentDatasnapshot.Longitude, allSections);
 		if (currentVahicleSection === undefined) {
+			this.Counter++;
 			return;
 		}
 
@@ -55,6 +86,11 @@ export class LaneDepartureRoutine {
 			{lat: currentVahicleSection.StartLatitude, lon: currentVahicleSection.StartLongitude },
 			{lat: currentDatasnapshot.Latitude, lon: currentDatasnapshot.Longitude }
 		);
+
+		// let test = headingDistanceTo(
+		// 	{lat: currentVahicleSection.StartLatitude, lon: currentVahicleSection.StartLongitude },
+		// 	{lat: currentVahicleSection.EndLatitude, lon: currentVahicleSection.EndLongitude }
+		// );
 
 		currentDatasnapshot.RefrenceHeading = currentVahicleSection.SectionType === SectionType.Straight 
 			? currentVahicleSection.PathAveragedHeading
@@ -69,8 +105,8 @@ export class LaneDepartureRoutine {
 
 		// Although we probably will only care about absolute value of lateral distances but to help debug stuff I will create separate properties
 		// for Absolute lateral distances
-		currentDatasnapshot.AbsoluteLateralDistance = Math.abs(currentDatasnapshot.AbsoluteLateralDistance)
-		currentDatasnapshot.AbsoluteAccumulativeLateralDistance = Math.abs(currentDatasnapshot.AbsoluteAccumulativeLateralDistance)
+		currentDatasnapshot.AbsoluteLateralDistance = Math.abs(currentDatasnapshot.LateralDistance)
+		currentDatasnapshot.AbsoluteAccumulativeLateralDistance = Math.abs(currentDatasnapshot.AccumulativeLateralDistance)
 		this.DataSnapshots.push(currentDatasnapshot);
 	}
 
@@ -82,9 +118,13 @@ export class LaneDepartureRoutine {
 	}
 
 	PredictLaneDeparture() {
+		if (this.DataSnapshots.length < 5) {
+			return;
+		}
+		
 		let lastDataSnaphotIndex = this.DataSnapshots.length - 1;
 
-		if (this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance >= 1) {
+		if (Math.abs(this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance) >= 1) {
 			
 			// Alarm here. For debugging/testing I will update a field in the object. 
 			this.DataSnapshots[lastDataSnaphotIndex].Alarm = true;
@@ -97,8 +137,9 @@ export class LaneDepartureRoutine {
 				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 3], this.DataSnapshots[lastDataSnaphotIndex - 4]) &&
 				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 4], this.DataSnapshots[lastDataSnaphotIndex - 5]))
 			{
-				this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
-				this.DataSnapshots[lastDataSnaphotIndex].LateralDistance = 0;
+				// this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
+				this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance = 0;
+				// this.DataSnapshots[lastDataSnaphotIndex].LateralDistance = 0;
 				// This is where we will stop alarming.
 			}
 
@@ -108,17 +149,21 @@ export class LaneDepartureRoutine {
 				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 1], this.DataSnapshots[lastDataSnaphotIndex - 2]) &&
 				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 2], this.DataSnapshots[lastDataSnaphotIndex - 3]))
 			{
-				this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
-				this.DataSnapshots[lastDataSnaphotIndex].LateralDistance = 0;
+				// this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
+				this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance = 0;
+				// this.DataSnapshots[lastDataSnaphotIndex].LateralDistance = 0;
 			}
 		}
 	}
 
-	IsCurrentLateralDistanceLessThanPreviousSnapshot(currentDataSnapshot: LaneDepartureSnapshot, previousDataSnapshots: LaneDepartureSnapshot) {
+	IsCurrentLateralDistanceLessThanPreviousSnapshot(currentDataSnapshot: LaneDepartureSnapshot, previousDataSnapshot: LaneDepartureSnapshot) {
 		
 		// TODO: Do we need to check check lateral and accumulateLateral both? 
-		return currentDataSnapshot.AbsoluteLateralDistance < previousDataSnapshots.AbsoluteLateralDistance ||
-			currentDataSnapshot.AbsoluteAccumulativeLateralDistance < previousDataSnapshots.AbsoluteAccumulativeLateralDistance;
+		// return currentDataSnapshot.AbsoluteLateralDistance < previousDataSnapshots.AbsoluteLateralDistance ||
+		// 	currentDataSnapshot.AbsoluteAccumulativeLateralDistance < previousDataSnapshots.AbsoluteAccumulativeLateralDistance;
+
+		return currentDataSnapshot.LateralDistance < previousDataSnapshot.LateralDistance ||
+			currentDataSnapshot.AccumulativeLateralDistance < previousDataSnapshot.AccumulativeLateralDistance;
 	}
 
 	GetSectionOfVehicle(latitude: number, longitude: number, allSections: Section[]): Section | undefined
@@ -130,7 +175,7 @@ export class LaneDepartureRoutine {
 			let maxLatitude: number;
 			let minLongitude: number;
 			let maxLongitude: number;
-			
+
 			if (section.EndLatitude >= section.StartLatitude) {
 				minLatitude = section.StartLatitude;
 				maxLatitude = section.EndLatitude; 
@@ -139,7 +184,7 @@ export class LaneDepartureRoutine {
 				maxLatitude = section.StartLatitude; 
 			}
 
-			if (section.EndLongitude >= section.EndLongitude) {
+			if (section.EndLongitude >= section.StartLongitude) {
 				minLongitude = section.StartLongitude;
 				maxLongitude = section.EndLongitude; 
 			} else {

@@ -99,7 +99,7 @@ import { Section, SectionType } from "./Section";
 					)
 
                     this.Distances.push(headingDistance.distance)
-					this.OutHeadings.push(headingDistance.heading);
+					this.OutHeadings.push(headingDistance.heading + 360);
 					// let slope = (this.OutHeadings[index] - this.OutHeadings[index - 1]) / this.Distances[index];
 					// this.Slopes.push(slope);
 					this.Accuracies.push(currentSnapshot.Accuracy);
@@ -125,6 +125,7 @@ import { Section, SectionType } from "./Section";
 			// }
 
 			this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.cutOffFrequency1, this.cutOffFrequency2);
+
 			for (let i = 1; i < this.SmoothedHeading.length; i++) {
 				let slope = (this.SmoothedHeading[i] - this.SmoothedHeading[i - 1]) / this.Distances[i];
 				this.Slopes.push(slope);	
