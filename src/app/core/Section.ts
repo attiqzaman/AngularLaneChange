@@ -14,6 +14,8 @@ export class Section {
 		this.OptimizedPathAveragedHeading = NaN;
 		this.OptimizedPathAvergaedSlope = NaN;
 		this.OptimizedInitialHeading = NaN;
+		this.MaxHeadingInSection = NaN;
+		this.MinHeadingInSection = NaN;
 	}
 
 	getSectionLength()
@@ -35,6 +37,9 @@ export class Section {
 	OptimizedPathAveragedHeading: number;
 	OptimizedPathAvergaedSlope: number;
 	OptimizedInitialHeading: number;
+
+	MaxHeadingInSection: number;
+	MinHeadingInSection: number;
 }
 
 export enum SectionType {

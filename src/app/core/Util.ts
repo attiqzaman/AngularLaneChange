@@ -1,3 +1,4 @@
+import { LaneDepartureSnapshot } from "./LaneDepartureSnapshot";
 import { Section, SectionType } from "./Section";
 import { Snapshot } from "./Snapshot";
 
@@ -86,6 +87,7 @@ export function PathAveragedDifferentialHeadingReselect(section: Section, differ
 
 export function CalculatePathAveragedSlope(section: Section, Slopes: number[], distances: number[], accumulativeDistances: number[]): number
 {
+	let distanceInSection = accumulativeDistances[section.EndIndex] - accumulativeDistances[section.StartIndex];
 	let sumOfSlopeMultiplyDistance: number[] = []
 	sumOfSlopeMultiplyDistance.push(0);
 
@@ -96,10 +98,93 @@ export function CalculatePathAveragedSlope(section: Section, Slopes: number[], d
 		j++;
 	}
 
-	let distanceInSection = accumulativeDistances[section.EndIndex] - accumulativeDistances[section.StartIndex];
 	let pathAveragedDifferentialHeading = sumOfSlopeMultiplyDistance[sumOfSlopeMultiplyDistance.length - 1] / distanceInSection;
 
 	return pathAveragedDifferentialHeading;
+}
+
+export function CalculatePathAveragedSlopeOfTransitionSection(section: Section, SmoothedHeadings: number[], distances: number[], accumulativeDistances: number[]): number
+{
+	let distanceInSection = accumulativeDistances[section.EndIndex] - accumulativeDistances[section.StartIndex];
+	let pathAveragedSlopeOfTransientSection = (SmoothedHeadings[section.EndIndex] - SmoothedHeadings[section.StartIndex])/ distanceInSection;
+	return pathAveragedSlopeOfTransientSection;
+}
+
+export function drawPointWithColorAndData(snapshot: LaneDepartureSnapshot, color: string, map: google.maps.Map<Element>) {
+
+	let pt = new google.maps.LatLng(snapshot.Latitude, snapshot.Longitude);
+	var infowindow = new google.maps.InfoWindow({
+		content: pt.lat() + ` ` + pt.lng() + ` ` + snapshot.SecondsFromStart
+	});
+
+	var marker = new google.maps.Marker({
+		position: pt,
+		icon: {
+			path: google.maps.SymbolPath.CIRCLE,
+			fillColor: color,
+			fillOpacity: 0.6,
+			strokeColor: color,
+			strokeOpacity: 0.9,
+			strokeWeight: 1,
+			scale: 3
+		}
+	});
+
+	marker.addListener("click", () => {
+		infowindow.open(map, marker);
+	  });
+
+	marker.setMap(map);
+}
+
+export function drawSections(sections: Section[], map: google.maps.Map<Element>) {
+	sections.forEach(section => {
+		let line = [
+			{ lat: section.StartLatitude, lng: section.StartLongitude },
+			{ lat: section.EndLatitude, lng: section.EndLongitude },
+		];
+
+		drawLine(section.SectionType, line, map);
+	});
+}
+
+function drawLine(sectionType: SectionType, drawLine: { lat: number; lng: number; }[], map: google.maps.Map<Element>) {
+	let strokeColor = '';
+	switch (sectionType) {
+		case SectionType.Straight:
+			strokeColor = 'red';
+			break;
+		case SectionType.Curved:
+			strokeColor = 'blue';
+			break;
+		case SectionType.Transient:
+			strokeColor = 'green';
+			break;
+		default:
+			strokeColor = 'white';
+			break;
+	}
+
+	var path = new google.maps.Polyline({
+		path: drawLine,
+		geodesic: true,
+		strokeColor: strokeColor,
+		strokeOpacity: 1.0,
+		strokeWeight: 8,
+	});
+
+	var infowindow = new google.maps.InfoWindow({
+		content: sectionType,
+		position: drawLine[0]
+	});
+
+	path.addListener("click", () => {
+		// infowindow.setPosition(event.latLng);
+		infowindow.open(map);
+	});
+
+	// directionsRenderer.setMap(null);
+	path.setMap(map);
 }
 
 export function OptimizeStraightSection(straightSection: Section, headings: number[], distances: number[]) {
@@ -108,6 +193,8 @@ export function OptimizeStraightSection(straightSection: Section, headings: numb
 	let headingsInSection = headings.slice(straightSection.StartIndex, straightSection.EndIndex + 1);
 	const pathAveragedHeadingMaxValue = Math.max.apply(null, headingsInSection);
 	const pathAveragedHeadingMinValue = Math.min.apply(null, headingsInSection);
+	straightSection.MaxHeadingInSection = pathAveragedHeadingMaxValue;
+	straightSection.MinHeadingInSection = pathAveragedHeadingMinValue;
 	const delataPathAveragedHeading = (pathAveragedHeadingMaxValue - pathAveragedHeadingMinValue) / 100;
 
 	let currentOptimimPathAveragedHeadingValue = straightSection.PathAveragedHeading;
@@ -148,7 +235,7 @@ export function OptimizeCurveSection(curveSection: Section, headings: number[], 
 	const initialHeadingsRange = headings.slice(curveSection.StartIndex - 1, curveSection.StartIndex + 4); // 2 points on each side of original IH
 	const initialHeadingMaxValue = Math.max.apply(null, initialHeadingsRange);
 	const initialHeadingMinValue = Math.min.apply(null, initialHeadingsRange);
-	const delataInitialHeading = (initialHeadingMaxValue - initialHeadingMinValue) / 100;
+	const deltaInitialHeading = (initialHeadingMaxValue - initialHeadingMinValue) / 100;
 
 	let currentOptimimInitialHeadingValue = curveSection.InitialHeading;
 	let currentOptimimPathAveragedSlopeValue = curveSection.PathAvergaedSlope;
@@ -180,19 +267,27 @@ export function OptimizeCurveSection(curveSection: Section, headings: number[], 
 			}
 
 			allAlsValues.push(als);
-			potentialInitialHeadingValue = potentialInitialHeadingValue + delataInitialHeading;
+			potentialInitialHeadingValue = potentialInitialHeadingValue + deltaInitialHeading;
 		}		
 
 		potentialPathAveragedSlope = potentialPathAveragedSlope + deltaPathAveragedSlope;
 	}
 
+
 	curveSection.OptimizedInitialHeading = currentOptimimInitialHeadingValue;
 	curveSection.OptimizedPathAvergaedSlope = currentOptimimPathAveragedSlopeValue;
 }
 
+export function OptimizeTransientSection(curveSection: Section) {
+	// In transient sections there is no optimization done so the optimized parameters are equal to non-optimized parameter/
+
+	curveSection.OptimizedInitialHeading = curveSection.InitialHeading;
+	curveSection.OptimizedPathAvergaedSlope = curveSection.PathAvergaedSlope;
+}
+
 export function GetStraightSections(averagedHeadings: number[]): Section[] {
 	let scanWindow = 3;
-	let threshold = 0.005;
+	let threshold = 0.002;
 
 	let straightSectionHelperArray: number[] = [];
 	for (let i = 1; i < averagedHeadings.length - 1 - scanWindow; i++) {

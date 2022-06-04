@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { headingDistanceTo } from 'geolocation-utils'
 import { ProcessedRouteWrapper } from './ProcessedRouteWrapper';
-import { ConvertLatLngToSnapshots } from './Util';
+import { ConvertLatLngToSnapshots, drawSections } from './Util';
 import { PrintRoute, PrintSections } from './FileSaver';
 import { Section, SectionType } from './Section';
 import { NumberSymbol } from '@angular/common';
@@ -88,7 +88,7 @@ export class MapService {
 
 		const on1stBtnClickHandler = () => {
 			startLatLng = latLng;
-			// startLatLng = new google.maps.LatLng(46.70342247,-92.29975626);
+			startLatLng = new google.maps.LatLng(45.6295804815298, -92.99210591089904);
 			(document.getElementById("firstDir") as HTMLInputElement).value = JSON.stringify(startLatLng.toJSON(), null, 2);
 		};
 		document.getElementById("firstButton")?.addEventListener(
@@ -98,7 +98,7 @@ export class MapService {
 
 		const on2ndBtnClickHandler = () => {
 			endLatLng = latLng;
-			// endLatLng = new google.maps.LatLng(46.72606103,-92.21761955);
+			endLatLng = new google.maps.LatLng(45.836993698299956, -92.98058775694528);
 
 			(document.getElementById("secondDir") as HTMLInputElement).value = JSON.stringify(endLatLng.toJSON(), null, 2);
 		};
@@ -246,16 +246,7 @@ export class MapService {
 						let snapshots = ConvertLatLngToSnapshots(points);
 						let route = new ProcessedRouteWrapper("UI", "route", cutOffFrequency1, cutOffFrequency2, snapshots);
 						
-						route.AllSections.forEach(section => {
-							let drawLine = [
-								{ lat: route.Latitudes[section.StartIndex], lng: route.Longitudes[section.StartIndex] },
-								{ lat: route.Latitudes[section.EndIndex], lng: route.Longitudes[section.EndIndex] },
-							]
-
-							this.drawLine(section.SectionType, drawLine, map);	
-						});			
-
-						// PrintRoute(route);
+						drawSections(route.AllSections, map);
 						PrintSections(route);
 						break;
 					default:
@@ -263,35 +254,6 @@ export class MapService {
 				}
 			});
 			// .catch((e: any) => window.alert("Directions request failed due to " + status));
-	}
-
-	drawLine(sectionType: SectionType, drawLine: { lat: number; lng: number; }[], map: google.maps.Map<Element>) {
-		let strokeColor = '';
-		switch (sectionType) {
-			case SectionType.Straight:
-				strokeColor = 'red';
-				break;
-			case SectionType.Curved:
-				strokeColor = 'blue';
-				break;
-			case SectionType.Transient:
-				strokeColor = 'green';
-				break;
-			default:
-				strokeColor = 'white';
-				break;
-		}
-
-		var path = new google.maps.Polyline({
-			path: drawLine,
-			geodesic: true,
-			strokeColor: strokeColor,
-			strokeOpacity: 1.0,
-			strokeWeight: 4,
-		});
-
-		// directionsRenderer.setMap(null);
-		path.setMap(map);
 	}
 
 	drawPoint(pt: google.maps.LatLng, map: google.maps.Map<Element>) {
@@ -312,60 +274,32 @@ export class MapService {
 		marker.setMap(map);
 	}
 
-	drawPointWithColor(pt: google.maps.LatLng, color: string) {
+	// drawPointWithColor(pt: google.maps.LatLng, color: string) {
 
-		var infowindow = new google.maps.InfoWindow({
-			content: pt.lat() + ` ` + pt.lng()
-		});
+	// 	var infowindow = new google.maps.InfoWindow({
+	// 		content: pt.lat() + ` ` + pt.lng()
+	// 	});
 
-		var marker = new google.maps.Marker({
-			position: pt,
-			icon: {
-				path: google.maps.SymbolPath.CIRCLE,
-				fillColor: color,
-				fillOpacity: 0.6,
-				strokeColor: color,
-				strokeOpacity: 0.9,
-				strokeWeight: 1,
-				scale: 3
-			}
-		});
+	// 	var marker = new google.maps.Marker({
+	// 		position: pt,
+	// 		icon: {
+	// 			path: google.maps.SymbolPath.CIRCLE,
+	// 			fillColor: color,
+	// 			fillOpacity: 0.6,
+	// 			strokeColor: color,
+	// 			strokeOpacity: 0.9,
+	// 			strokeWeight: 1,
+	// 			scale: 3
+	// 		}
+	// 	});
 
-		marker.addListener("click", () => {
-			infowindow.open(this.map, marker);
-		  });
+	// 	marker.addListener("click", () => {
+	// 		infowindow.open(this.map, marker);
+	// 	  });
 
-		// To add the marker to the map, call setMap();
-		marker.setMap(this.map);
-	}
-
-	drawPointWithColorAnData(snapshot: Snapshot, color: string) {
-
-		let pt = new google.maps.LatLng(snapshot.Latitude, snapshot.Longitude);
-		var infowindow = new google.maps.InfoWindow({
-			content: pt.lat() + ` ` + pt.lng() + ` ` + snapshot.SnapshotNumber
-		});
-
-		var marker = new google.maps.Marker({
-			position: pt,
-			icon: {
-				path: google.maps.SymbolPath.CIRCLE,
-				fillColor: color,
-				fillOpacity: 0.6,
-				strokeColor: color,
-				strokeOpacity: 0.9,
-				strokeWeight: 1,
-				scale: 3
-			}
-		});
-
-		marker.addListener("click", () => {
-			infowindow.open(this.map, marker);
-		  });
-
-		// To add the marker to the map, call setMap();
-		marker.setMap(this.map);
-	}
+	// 	// To add the marker to the map, call setMap();
+	// 	marker.setMap(this.map);
+	// }
 
 	drawPolygonsColor(section: Section, color: string) {
 

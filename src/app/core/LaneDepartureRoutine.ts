@@ -1,9 +1,10 @@
 import { distanceTo, headingDistanceTo } from "geolocation-utils";
-import { PrintLdwSnapshots } from "./FileSaver";
+import { PrintLdwSnapshots, PrintLdwSnapshotsAsCsv } from "./FileSaver";
 import { LaneDepartureSnapshot } from "./LaneDepartureSnapshot";
 import { MapService } from "./map.service";
 import { Section, SectionType } from "./Section";
 import { Snapshot } from "./Snapshot";
+import { drawPointWithColorAndData, drawSections } from "./Util";
 
 
 export class LaneDepartureRoutine {
@@ -14,45 +15,36 @@ export class LaneDepartureRoutine {
 	Counter: number = 0;
 
 	constructor(allSections: Section[], gpsSnapshots: Snapshot[], mapService: MapService) {
-		// let allSections = this.GetAllSections();
-		// const gpsSnapshots = this.GetCoordinates();
 
 		mapService.initMap();
-		mapService.setMap(gpsSnapshots[0].Latitude, gpsSnapshots[1].Longitude);
-		// allSections.forEach(section => {
-		// 	let drawLine = [
-		// 		{ lat: section.StartLatitude, lng: section.StartLongitude },
-		// 		{ lat: section.EndLatitude, lng: section.EndLongitude },
-		// 	]
-
-		// 	let color = section.SectionType === SectionType.Straight ? 'red': 'blue';
-		// 	// mapService.drawPolygonsColor(section, 'red');
-		// 	// mapService.drawLine(section.SectionType, drawLine, mapService.map);
-		// })
-		// let count = 0;
-		// gpsSnapshots.forEach(gpsSnapshot => {
-		// 	let section = this.GetSectionOfVehicle(gpsSnapshot.Latitude, gpsSnapshot.Longitude, allSections);
-		// 	let pt = new google.maps.LatLng(gpsSnapshot.Latitude, gpsSnapshot.Longitude);
-		// 	let color = section === undefined ? 'red': 'blue';
-		// 	if (section === undefined) {
-		// 		// mapService.drawPointWithColor(pt, color);
-		// 	}
-			
-		// 	mapService.drawPointWithColorAnData(gpsSnapshot, color);
-		// 	count++;
-		// });
-		
+		mapService.setMap(gpsSnapshots[0].Latitude, gpsSnapshots[1].Longitude);		
 		gpsSnapshots.forEach(gpsSnapshot => {
 			this.ProcessNewGpsSnapshot(gpsSnapshot, allSections);
 			this.PredictLaneDeparture();
 		});
+		
+		drawSections(allSections, mapService.map);
+		this.DataSnapshots.forEach(laneDepartureSnapshot => {
+			if (laneDepartureSnapshot.Alarm) {
+				drawPointWithColorAndData(laneDepartureSnapshot, 'black', mapService.map);
+			}
+		});
 
-		PrintLdwSnapshots(this.DataSnapshots);
+
+		PrintLdwSnapshotsAsCsv(this.DataSnapshots);
 	}
 
 	// This will basically be the GPS event callback
 	ProcessNewGpsSnapshot(gpsSnapshot: Snapshot, allSections: Section[]) {
-		let currentDatasnapshot: LaneDepartureSnapshot = new LaneDepartureSnapshot(gpsSnapshot.Latitude, gpsSnapshot.Longitude);
+		let startDate: Date = this.DataSnapshots.length > 0 ? this.DataSnapshots[0].TimeStamp : new Date(gpsSnapshot.TimeStampAsString);
+		let currentDatasnapshot: LaneDepartureSnapshot = new LaneDepartureSnapshot(
+			gpsSnapshot.Latitude,
+			gpsSnapshot.Longitude,
+			gpsSnapshot.SnapshotNumber,
+			gpsSnapshot.TimeStampAsString,
+			startDate);
+
+
 		if (this.DataSnapshots.length < 2) {
 			this.DataSnapshots.push(currentDatasnapshot);
 			return;
@@ -65,7 +57,7 @@ export class LaneDepartureRoutine {
 		)
 
 		currentDatasnapshot.Distance = headingDistanceFromPreviousSnapshot.distance;
-		currentDatasnapshot.AccumulativeDistance = previousDataSnapshot.AccumulativeDistance + currentDatasnapshot.Distance;
+		currentDatasnapshot.AccumulativeDistance = previousDataSnapshot.AccumulativeDistance + currentDatasnapshot.Distance; // not really used?
 		currentDatasnapshot.Heading = headingDistanceFromPreviousSnapshot.heading + 360;
 
 		if (this.DataSnapshots.length < 5) {
@@ -82,22 +74,25 @@ export class LaneDepartureRoutine {
 			return;
 		}
 
-		currentDatasnapshot.DistanceFromStartOfSection = distanceTo(
-			{lat: currentVahicleSection.StartLatitude, lon: currentVahicleSection.StartLongitude },
-			{lat: currentDatasnapshot.Latitude, lon: currentDatasnapshot.Longitude }
-		);
+		currentDatasnapshot.SectionStartIndex = currentVahicleSection.StartIndex; 
+		// We need to figure out if this is the first point in a 'new section. (this should check SectionId in final version)
+		if (currentDatasnapshot.SectionStartIndex === previousDataSnapshot.SectionStartIndex) {
+			currentDatasnapshot.DistanceFromStartOfSection = previousDataSnapshot.DistanceFromStartOfSection + currentDatasnapshot.Distance;
+		} else {
+			currentDatasnapshot.IsFirstPointInSection = true;
+			currentDatasnapshot.DistanceFromStartOfSection = distanceTo(
+				{lat: currentVahicleSection.StartLatitude, lon: currentVahicleSection.StartLongitude },
+				{lat: currentDatasnapshot.Latitude, lon: currentDatasnapshot.Longitude }
+			);
+		}
 
-		// let test = headingDistanceTo(
-		// 	{lat: currentVahicleSection.StartLatitude, lon: currentVahicleSection.StartLongitude },
-		// 	{lat: currentVahicleSection.EndLatitude, lon: currentVahicleSection.EndLongitude }
-		// );
-
+		// Confirm DistanceFromStartOfSection 
 		currentDatasnapshot.RefrenceHeading = currentVahicleSection.SectionType === SectionType.Straight 
-			? currentVahicleSection.PathAveragedHeading
-			: currentVahicleSection.PathAveragedHeading + (currentVahicleSection.PathAvergaedSlope * currentDatasnapshot.DistanceFromStartOfSection);
+			? currentVahicleSection.OptimizedPathAveragedHeading
+			: currentVahicleSection.OptimizedInitialHeading + (currentVahicleSection.OptimizedPathAvergaedSlope * currentDatasnapshot.DistanceFromStartOfSection);
 		
 		// Lateral Distance and Accumulated Lateral Distance Calculation (we use these to decide if lane departure happened)
-		currentDatasnapshot.Theta = currentDatasnapshot.RefrenceHeading - currentDatasnapshot.AveragedHeading;
+		currentDatasnapshot.Theta = currentDatasnapshot.RefrenceHeading - currentDatasnapshot.AveragedHeading; // rename to currentAveragedHeading
 
 		// We want to find Perpendicular field of a right triangle
 		currentDatasnapshot.LateralDistance = currentDatasnapshot.Distance * Math.sin(currentDatasnapshot.Theta * Math.PI / 180) // Sin(Theta) = P / H
@@ -121,13 +116,22 @@ export class LaneDepartureRoutine {
 		if (this.DataSnapshots.length < 5) {
 			return;
 		}
-		
+
 		let lastDataSnaphotIndex = this.DataSnapshots.length - 1;
 
+		this.DataSnapshots[lastDataSnaphotIndex].Alarm = this.DataSnapshots[lastDataSnaphotIndex - 1].Alarm;
+		if (Math.abs(this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance) == 0 ||
+		    Math.abs(this.DataSnapshots[lastDataSnaphotIndex - 1].AccumulativeLateralDistance) == 0 ||
+			Math.abs(this.DataSnapshots[lastDataSnaphotIndex - 2].AccumulativeLateralDistance) == 0 ) {
+				return;
+		}
+		
 		if (Math.abs(this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance) >= 1) {
 			
 			// Alarm here. For debugging/testing I will update a field in the object. 
 			this.DataSnapshots[lastDataSnaphotIndex].Alarm = true;
+			// If previous state was in alarm then this isn't start of alarm.
+			this.DataSnapshots[lastDataSnaphotIndex].StartOfAlarm = this.DataSnapshots[lastDataSnaphotIndex - 1].Alarm == true ? false: true;
 
 			// We now need to calculate if Accmulative Lateral Distance needs to be reset or not. Once a vehicle completes
 			// a lane departure we need to set the Accumulative lateral distance to 0 so we can catch the next lane departure.
@@ -137,8 +141,10 @@ export class LaneDepartureRoutine {
 				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 3], this.DataSnapshots[lastDataSnaphotIndex - 4]) &&
 				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 4], this.DataSnapshots[lastDataSnaphotIndex - 5]))
 			{
-				// this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
+				this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
 				this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance = 0;
+				this.DataSnapshots[lastDataSnaphotIndex].Alarm = false;
+				this.DataSnapshots[lastDataSnaphotIndex].StartOfAlarm = false;
 				// this.DataSnapshots[lastDataSnaphotIndex].LateralDistance = 0;
 				// This is where we will stop alarming.
 			}
@@ -149,7 +155,7 @@ export class LaneDepartureRoutine {
 				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 1], this.DataSnapshots[lastDataSnaphotIndex - 2]) &&
 				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 2], this.DataSnapshots[lastDataSnaphotIndex - 3]))
 			{
-				// this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
+				this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
 				this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance = 0;
 				// this.DataSnapshots[lastDataSnaphotIndex].LateralDistance = 0;
 			}
@@ -168,7 +174,7 @@ export class LaneDepartureRoutine {
 
 	GetSectionOfVehicle(latitude: number, longitude: number, allSections: Section[]): Section | undefined
 	{
-		const change: number = 0.0005;
+		const change: number = 0.00005;
 		for (var section of allSections)
 		{
 			let minLatitude: number;
@@ -206,9 +212,3 @@ export class LaneDepartureRoutine {
 		return undefined;
 	}
 }
-
-
-
-
-
-
