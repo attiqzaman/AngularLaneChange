@@ -105,6 +105,7 @@ export class LaneDepartureRoutine {
 		this.DataSnapshots.push(currentDatasnapshot);
 	}
 
+	
 	GetAllSections(): Section[] {
 		throw new Error("Function not implemented.");
 	}
