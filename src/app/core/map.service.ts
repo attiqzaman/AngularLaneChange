@@ -3,10 +3,9 @@ import { Injectable } from '@angular/core';
 import { headingDistanceTo } from 'geolocation-utils'
 import { ProcessedRouteWrapper } from './ProcessedRouteWrapper';
 import { ConvertLatLngToSnapshots, drawSections } from './Util';
-import { PrintRoute, PrintSections } from './FileSaver';
-import { Section, SectionType } from './Section';
+import { PrintSections, PrintSnapshots } from './FileSaver';
+import { Section } from './Section';
 import { NumberSymbol } from '@angular/common';
-import { Snapshot } from './Snapshot';
 
 @Injectable({
   providedIn: 'root'
@@ -244,6 +243,7 @@ export class MapService {
 						}
 
 						let snapshots = ConvertLatLngToSnapshots(points);
+						PrintSnapshots("GooglePoints", snapshots); // Prints GPS points which can then be sent to LDW routine.
 						let route = new ProcessedRouteWrapper("UI", "route", cutOffFrequency1, cutOffFrequency2, snapshots);
 						
 						drawSections(route.AllSections, map);

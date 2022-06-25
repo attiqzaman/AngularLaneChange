@@ -368,8 +368,10 @@ export function CalculateAveragedDifferentialHeadings(differentialHeadings: numb
 
 export function ConvertLatLngToSnapshots(points: google.maps.LatLng[]): Snapshot[] {
 	let allSnapshots: Snapshot[] = [];
+	let snapshotNumber = 0;
 	points.forEach(point => {
-		allSnapshots.push(new Snapshot(point.lat(), point.lng()));
+		allSnapshots.push(new Snapshot(point.lat(), point.lng(), snapshotNumber));
+		snapshotNumber++;
 	});
 
 

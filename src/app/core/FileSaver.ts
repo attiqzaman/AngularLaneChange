@@ -3,6 +3,7 @@ import { saveAs } from 'file-saver';
 import { formatDate } from '@angular/common';
 import { Section, SectionType } from "./Section";
 import { LaneDepartureSnapshot } from "./LaneDepartureSnapshot";
+import { Snapshot } from "./Snapshot";
 // import { PathLike, writeFile, WriteFileOptions } from "fs";
 
 export function PrintSections(route: ProcessedRouteWrapper) {
@@ -15,6 +16,13 @@ export function PrintSections(route: ProcessedRouteWrapper) {
 export function PrintLdwSnapshots(snapshots: LaneDepartureSnapshot[]) {
 	let currentTime = formatDate(new Date, '"MM_dd__hh_mm', 'en-US');
 	var fileName = `LDW_${currentTime}.json`;
+	var blob = new Blob([JSON.stringify(snapshots, null, 2)], {type: "text/plain;charset=utf-8"});
+	saveAs(blob, fileName);
+}
+
+export function PrintSnapshots(fileNAmeProefix: string, snapshots: Snapshot[]) {
+	let currentTime = formatDate(new Date, '"MM_dd__hh_mm', 'en-US');
+	var fileName = `${fileNAmeProefix}_${currentTime}.json`;
 	var blob = new Blob([JSON.stringify(snapshots, null, 2)], {type: "text/plain;charset=utf-8"});
 	saveAs(blob, fileName);
 }
