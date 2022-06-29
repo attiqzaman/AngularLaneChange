@@ -5,12 +5,9 @@ import { Snapshot } from "./Snapshot";
 var dsp = require('digitalsignals');
 
 export function AreSnapshotsOnSamePoint(a:Snapshot, b: Snapshot, useGooglePoints: boolean) : boolean {
-	// return useGooglePoints ?
-	// 			a.GoogleLatitude == b.GoogleLatitude && a.GoogleLongitude == b.GoogleLongitude :
-	// 			a.Latitude == b.Latitude && a.Longitude == b.Longitude;
-
-	return a.GoogleLatitude == b.GoogleLatitude && a.GoogleLongitude == b.GoogleLongitude;
-	// a.Latitude == b.Latitude && a.Longitude == b.Longitude;
+	return useGooglePoints ?
+				a.GoogleLatitude == b.GoogleLatitude && a.GoogleLongitude == b.GoogleLongitude :
+				a.Latitude == b.Latitude && a.Longitude == b.Longitude;
 }
 
 export function CalculatePathAveragedHeading(section: Section, headings: number[], distances: number[], accumulativeDistances: number[]): number

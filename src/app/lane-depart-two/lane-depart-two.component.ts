@@ -4,6 +4,7 @@ import { plainToInstance } from "class-transformer";
 import { Snapshot } from '../core/Snapshot';
 import { LaneDepartureRoutine } from '../core/LaneDepartureRoutine';
 import { MapService } from '../core/map.service';
+import { readFileContent } from '../core/FileReader';
 
 @Component({
 	selector: 'app-lane-depart-two',
@@ -33,7 +34,7 @@ export class LaneDepartTwoComponent implements OnInit {
 		const file:File = event.target.files[0];
 
 		if (file) {
-			const fileContent = await this.readFileContent(file);
+			const fileContent = await readFileContent(file);
 			this.sections = plainToInstance(Section, JSON.parse(fileContent));
 		}
 	}
@@ -42,35 +43,13 @@ export class LaneDepartTwoComponent implements OnInit {
 		const file:File = event.target.files[0];
 
 		if (file) {
-			const fileContent = await this.readFileContent(file);
+			const fileContent = await readFileContent(file);
 			this.gpsSnapshots = plainToInstance(Snapshot, JSON.parse(fileContent));
-			let test = 23;
 		}
 	}
 
 	onProcessLaneDepartureWarning() {
 		let warningRoutine = new LaneDepartureRoutine(this.sections, this.gpsSnapshots, this.service);
-	}
-
-	readFileContent(file: File): Promise<string> {
-		return new Promise<string>((resolve, reject) => {
-				if (!file) {
-						resolve('');
-				}
-
-				const reader = new FileReader();
-
-				reader.onload = (e) => {
-					if (reader.result !== null) {
-						const text = reader.result.toString();
-						resolve(text);
-					} else {
-						resolve("no data");
-					}
-				};
-
-				reader.readAsText(file);
-		});
 	}
 
 	drawPoint(pt: google.maps.LatLng, map: google.maps.Map<Element>) {

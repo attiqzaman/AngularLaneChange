@@ -87,7 +87,7 @@ export class MapService {
 
 		const on1stBtnClickHandler = () => {
 			startLatLng = latLng;
-			startLatLng = new google.maps.LatLng(45.6295804815298, -92.99210591089904);
+			startLatLng = new google.maps.LatLng(45.639403, -92.992107);
 			(document.getElementById("firstDir") as HTMLInputElement).value = JSON.stringify(startLatLng.toJSON(), null, 2);
 		};
 		document.getElementById("firstButton")?.addEventListener(
@@ -97,7 +97,7 @@ export class MapService {
 
 		const on2ndBtnClickHandler = () => {
 			endLatLng = latLng;
-			endLatLng = new google.maps.LatLng(45.836993698299956, -92.98058775694528);
+			endLatLng = new google.maps.LatLng(45.831359, -92.982524);
 
 			(document.getElementById("secondDir") as HTMLInputElement).value = JSON.stringify(endLatLng.toJSON(), null, 2);
 		};
@@ -244,7 +244,7 @@ export class MapService {
 
 						let snapshots = ConvertLatLngToSnapshots(points);
 						PrintSnapshots("GooglePoints", snapshots); // Prints GPS points which can then be sent to LDW routine.
-						let route = new ProcessedRouteWrapper("UI", "route", cutOffFrequency1, cutOffFrequency2, snapshots);
+						let route = new ProcessedRouteWrapper("UI_GPS", "route", cutOffFrequency1, cutOffFrequency2, snapshots);
 						
 						drawSections(route.AllSections, map);
 						PrintSections(route);

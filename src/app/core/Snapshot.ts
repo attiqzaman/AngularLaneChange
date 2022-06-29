@@ -1,5 +1,5 @@
 export class Snapshot {
-    constructor(Latitude: number, Longitude: number, snapshotNumer: number) 
+    constructor(Latitude: number, Longitude: number, snapshotNumber: number) 
     {
         this.GoogleLatitude = Latitude;
         this.GoogleLongitude = Longitude;
@@ -9,7 +9,7 @@ export class Snapshot {
         this.IsManipulated = false;
         this.TimeStampAsString = "-1";
         this.Accuracy = 1;
-        this.SnapshotNumber = snapshotNumer;
+        this.SnapshotNumber = snapshotNumber;
     }
 
     GoogleLatitude: number;

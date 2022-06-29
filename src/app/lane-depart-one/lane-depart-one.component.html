@@ -22,7 +22,7 @@
             </div>
             <button class="btn btn-primary btn-block w-100" id="drawRoute">Draw Route </button>
             <hr/>
-            <button class="btn btn-primary btn-block w-100" id="drawPoints">Draw Points </button>
+            <!-- <button class="btn btn-primary btn-block w-100" id="drawPoints">Draw Points </button>
             <hr/>
             <div class="form-group">
                 <label >Point Of Interest</label>
@@ -30,7 +30,7 @@
                     <input type="text" class="form-control" placeholder="Point Of Interest" id="pointOfInterest">
                 </div>
             </div>
-            <button class="btn btn-primary btn-block w-100" id="drawSomePoints">Draw Relative Points</button>
+            <button class="btn btn-primary btn-block w-100" id="drawSomePoints">Draw Relative Points</button> -->
             <hr/>
             <div class="form-group">
                 <label>Add cut-off freq1 and freq2</label>
@@ -38,7 +38,14 @@
                     <input type="text" class="form-control" placeholder="20, 125" id="LowPassFilterParameters" value="20, 125">
                 </div>
             </div>
-            <button class="btn btn-primary btn-block w-100" id="downloadProcessedFile">Download CSV File</button>
+            <button class="btn btn-primary btn-block w-100" id="downloadProcessedFile">Download GoogleRoute RRH Files</button>
+            <hr/>
+            <input type="file" class="file-input" (change)="onCarRouteFileSelected($event)" #routeFileUpload>
+            <div class="search-location p-3">
+                {{CarSnapshots.length > 0 || "No car route file uploaded yet."}}
+                <button class="btn btn-primary btn-block w-100" (click)="routeFileUpload.click()">Upload Car Route </button>
+            </div>
+            <button class="btn btn-primary btn-block w-100" (click)="onDownloadCarRouteRrhFiles()">Download CarRoute RRH Files</button>
         </div>
     </div>
     <div class="maps">

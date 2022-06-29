@@ -42,14 +42,14 @@ import { Section, SectionType } from "./Section";
 		// AverageHeadingsNotGoogle: number[];
 		// DifferentialHeadingsNotGoogle: number[];
 
-        constructor(userId: string, routeId: string, cutOffFrequency1: number, cutOffFrequency2: number, snapshots: Snapshot[]) {
+        constructor(userId: string, routeId: string, cutOffFrequency1: number, cutOffFrequency2: number, snapshots: Snapshot[], useGooglePoints: boolean = true) {
             this.UserId = userId;
             this.RouteId = routeId;
 			this.cutOffFrequency1 = cutOffFrequency1;
 			this.cutOffFrequency2 = cutOffFrequency2;
             this.SortedSnapshots = snapshots;
 
-			this.ProcessRoute(true);
+			this.ProcessRoute(useGooglePoints);
         }
 
         ProcessRoute(useGooglePoints: boolean)
