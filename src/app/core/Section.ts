@@ -17,6 +17,7 @@ export class Section {
 		this.MaxHeadingInSection = NaN;
 		this.MinHeadingInSection = NaN;
 		this.TotalSectionLength = NaN;
+		this.AccumulativeDistanceAtStart = NaN;
 	}
 
 	getSectionLength()
@@ -43,6 +44,7 @@ export class Section {
 	MinHeadingInSection: number;
 
 	TotalSectionLength: number;
+	AccumulativeDistanceAtStart: number;
 }
 
 export enum SectionType {

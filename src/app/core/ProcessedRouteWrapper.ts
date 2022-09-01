@@ -228,6 +228,7 @@ import { Section, SectionType } from "./Section";
 
 				// Also calculate the total length (accumulative distance) of section
 				section.TotalSectionLength = this.AccumulativeDistances[section.EndIndex] - this.AccumulativeDistances[section.StartIndex];
+				section.AccumulativeDistanceAtStart = this.AccumulativeDistances[section.StartIndex];
 			});
 		}
 	}

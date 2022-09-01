@@ -141,13 +141,13 @@ export function drawSections(sections: Section[], map: google.maps.Map<Element>)
 			{ lat: section.EndLatitude, lng: section.EndLongitude },
 		];
 
-		drawLine(section.SectionType, section.TotalSectionLength, line, map);
+		drawLine(section, line, map);
 	});
 }
 
-function drawLine(sectionType: SectionType, sectionLength: number, drawLine: { lat: number; lng: number; }[], map: google.maps.Map<Element>) {
+function drawLine(section: Section, drawLine: { lat: number; lng: number; }[], map: google.maps.Map<Element>) {
 	let strokeColor = '';
-	switch (sectionType) {
+	switch (section.SectionType) {
 		case SectionType.Straight:
 			strokeColor = 'red';
 			break;
@@ -170,8 +170,30 @@ function drawLine(sectionType: SectionType, sectionLength: number, drawLine: { l
 		strokeWeight: 8,
 	});
 
+	const accuracyOfHeading = 4;
+	var html: string;
+	if (section.SectionType === SectionType.Straight) {
+		html = "<p>" 
+			+ "sectionType: "  + section.SectionType + "<br />"
+			+ "sectionLength: " + Math.round(section.TotalSectionLength) + "<br />"
+			+ "accumulativeDistance: " + Math.round(section.AccumulativeDistanceAtStart) + "<br />"
+			+ "pah: "  + section.PathAveragedHeading.toFixed(accuracyOfHeading) + "<br />"
+			+ "oPah: " + section.OptimizedPathAveragedHeading.toFixed(accuracyOfHeading)
+			"</p>"
+	} else {
+		html = "<p>" 
+			+ "sectionType: "  + section.SectionType + "<br />"
+			+ "sectionLength: " + Math.round(section.TotalSectionLength) + "<br />"
+			+ "accumulativeDistance: " + Math.round(section.AccumulativeDistanceAtStart) + "<br />"
+			+ "initialHeading: "  + section.InitialHeading.toFixed(accuracyOfHeading) + "<br />"
+			+ "oInitialHeading: " + section.OptimizedInitialHeading.toFixed(accuracyOfHeading) + "<br />"
+			+ "pahs: "  + section.PathAvergaedSlope.toFixed(accuracyOfHeading) + "<br />"
+			+ "opahs: "  + section.OptimizedPathAvergaedSlope.toFixed(accuracyOfHeading)
+			"</p>"
+	}
+
 	var infowindow = new google.maps.InfoWindow({
-		content: sectionType + " , " + sectionLength,
+		content: html,
 		position: drawLine[0]
 	});
 
