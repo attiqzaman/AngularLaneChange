@@ -225,6 +225,9 @@ import { Section, SectionType } from "./Section";
 				section.StartLongitude = this.Longitudes[section.StartIndex];
 				section.EndLatitude = this.Latitudes[section.EndIndex];
 				section.EndLongitude = this.Longitudes[section.EndIndex];
+
+				// Also calculate the total length (accumulative distance) of section
+				section.TotalSectionLength = this.AccumulativeDistances[section.EndIndex] - this.AccumulativeDistances[section.StartIndex];
 			});
 		}
 	}

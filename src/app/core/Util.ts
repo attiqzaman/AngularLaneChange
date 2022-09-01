@@ -141,11 +141,11 @@ export function drawSections(sections: Section[], map: google.maps.Map<Element>)
 			{ lat: section.EndLatitude, lng: section.EndLongitude },
 		];
 
-		drawLine(section.SectionType, line, map);
+		drawLine(section.SectionType, section.TotalSectionLength, line, map);
 	});
 }
 
-function drawLine(sectionType: SectionType, drawLine: { lat: number; lng: number; }[], map: google.maps.Map<Element>) {
+function drawLine(sectionType: SectionType, sectionLength: number, drawLine: { lat: number; lng: number; }[], map: google.maps.Map<Element>) {
 	let strokeColor = '';
 	switch (sectionType) {
 		case SectionType.Straight:
@@ -171,7 +171,7 @@ function drawLine(sectionType: SectionType, drawLine: { lat: number; lng: number
 	});
 
 	var infowindow = new google.maps.InfoWindow({
-		content: sectionType,
+		content: sectionType + " , " + sectionLength,
 		position: drawLine[0]
 	});
 

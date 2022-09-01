@@ -16,6 +16,7 @@ export class Section {
 		this.OptimizedInitialHeading = NaN;
 		this.MaxHeadingInSection = NaN;
 		this.MinHeadingInSection = NaN;
+		this.TotalSectionLength = NaN;
 	}
 
 	getSectionLength()
@@ -40,6 +41,8 @@ export class Section {
 
 	MaxHeadingInSection: number;
 	MinHeadingInSection: number;
+
+	TotalSectionLength: number;
 }
 
 export enum SectionType {

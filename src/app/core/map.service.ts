@@ -29,8 +29,8 @@ export class MapService {
 	initMap(): void {		
 		var mark = null;
 		var latLng: google.maps.LatLng;
-		let startLatLng = new google.maps.LatLng(46.6997675, -92.418003);
-		let endLatLng = new google.maps.LatLng(46.5396788,-92.6232759);
+		let startLatLng = new google.maps.LatLng(45.639403, -92.992107);
+		let endLatLng = new google.maps.LatLng(45.831359, -92.982524);
 		let pointOfInterestLatLng = new google.maps.LatLng(46.72623549, -92.21377368);
 
 		const directionsService = new google.maps.DirectionsService();
@@ -247,6 +247,7 @@ export class MapService {
 						let route = new ProcessedRouteWrapper("UI_GPS", "route", cutOffFrequency1, cutOffFrequency2, snapshots);
 						
 						drawSections(route.AllSections, map);
+						directionsRenderer.setMap(null); // We don't need the directions rendered on screen anymore.
 						PrintSections(route);
 						break;
 					default:
