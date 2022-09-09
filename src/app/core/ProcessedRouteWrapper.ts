@@ -169,6 +169,8 @@ import { Section, SectionType } from "./Section";
 			straightSections.forEach(section => {
 				let pathAveragedHeading = CalculatePathAveragedHeading(section, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
 				section.PathAveragedHeading = pathAveragedHeading;
+				OptimizeStraightSection(section, this.SmoothedHeading, this.Distances); // optimize straight sections
+				this.AddSectionMetaData(section);
 				this.StraightSections.push(section);
 			});
 
@@ -191,44 +193,43 @@ import { Section, SectionType } from "./Section";
 
 				let pathAveragedSlopeForCurveSection = CalculatePathAveragedSlope(trueCurveSection, this.Slopes, this.Distances, this.AccumulativeDistances);
 				trueCurveSection.PathAvergaedSlope = pathAveragedSlopeForCurveSection;
-				trueCurveSection.InitialHeading = this.SmoothedHeading[trueCurveSection.StartIndex + 1]; // may be average in future?
+				trueCurveSection.InitialHeading = this.SmoothedHeading[trueCurveSection.StartIndex]; // may be average in future?
+				OptimizeCurveSection(trueCurveSection, this.SmoothedHeading, this.Distances, this.AccumulativeDistances); //optimize curve section
+				this.AddSectionMetaData(trueCurveSection);
 
 				// now we have curve section, the sections to the right and left are transient sections.
 				let leftTransientSection = new Section(rawNonStraightSection.StartIndex, trueCurveSection.StartIndex, SectionType.Transient);
 				let pathAveragedSlopeForLeftTransientSection = CalculatePathAveragedSlopeOfTransitionSection(leftTransientSection, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
 				leftTransientSection.PathAvergaedSlope = pathAveragedSlopeForLeftTransientSection;
-				leftTransientSection.InitialHeading = this.SmoothedHeading[leftTransientSection.StartIndex];
+				leftTransientSection.InitialHeading = currentStraightSection.OptimizedPathAveragedHeading;
+				OptimizeTransientSection(leftTransientSection);
+				this.AddSectionMetaData(leftTransientSection);
 
 				let rightTransientSection = new Section(trueCurveSection.EndIndex, rawNonStraightSection.EndIndex, SectionType.Transient);
 				let pathAveragedSlopeForRightTransientSection = CalculatePathAveragedSlopeOfTransitionSection(rightTransientSection, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
 				rightTransientSection.PathAvergaedSlope = pathAveragedSlopeForRightTransientSection;
-				rightTransientSection.InitialHeading = this.SmoothedHeading[rightTransientSection.StartIndex];
+
+				var sectionLength = this.AccumulativeDistances[trueCurveSection.EndIndex] - this.AccumulativeDistances[trueCurveSection.StartIndex];
+				rightTransientSection.InitialHeading = trueCurveSection.OptimizedInitialHeading + (trueCurveSection.OptimizedPathAvergaedSlope * sectionLength);
+				OptimizeTransientSection(rightTransientSection);
+				this.AddSectionMetaData(rightTransientSection);
 				
 				this.AllSections.push(leftTransientSection);
 				this.AllSections.push(trueCurveSection);
 				this.AllSections.push(rightTransientSection);
 				this.AllSections.push(currentStraightSection);
 			}
+		}
 
+		private AddSectionMetaData(section : Section) 
+		{
+			section.StartLatitude = this.Latitudes[section.StartIndex];
+			section.StartLongitude = this.Longitudes[section.StartIndex];
+			section.EndLatitude = this.Latitudes[section.EndIndex];
+			section.EndLongitude = this.Longitudes[section.EndIndex];
 
-			// Optimize straight sections
-			this.AllSections.forEach(section => {
-				if (section.SectionType === SectionType.Straight) {
-					OptimizeStraightSection(section, this.SmoothedHeading, this.Distances);
-				} else if (section.SectionType === SectionType.Curved)  {
-					OptimizeCurveSection(section, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
-				} else {
-					OptimizeTransientSection(section);
-				}
-
-				section.StartLatitude = this.Latitudes[section.StartIndex];
-				section.StartLongitude = this.Longitudes[section.StartIndex];
-				section.EndLatitude = this.Latitudes[section.EndIndex];
-				section.EndLongitude = this.Longitudes[section.EndIndex];
-
-				// Also calculate the total length (accumulative distance) of section
-				section.TotalSectionLength = this.AccumulativeDistances[section.EndIndex] - this.AccumulativeDistances[section.StartIndex];
-				section.AccumulativeDistanceAtStart = this.AccumulativeDistances[section.StartIndex];
-			});
+			// Also calculate the total length (accumulative distance) of section
+			section.TotalSectionLength = this.AccumulativeDistances[section.EndIndex] - this.AccumulativeDistances[section.StartIndex];
+			section.AccumulativeDistanceAtStart = this.AccumulativeDistances[section.StartIndex];
 		}
 	}

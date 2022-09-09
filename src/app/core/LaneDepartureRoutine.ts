@@ -87,12 +87,16 @@ export class LaneDepartureRoutine {
 		}
 
 		// Confirm DistanceFromStartOfSection 
-		currentDatasnapshot.RefrenceHeading = currentVahicleSection.SectionType === SectionType.Straight 
+		currentDatasnapshot.OptimizedRefrenceHeading = currentVahicleSection.SectionType === SectionType.Straight 
 			? currentVahicleSection.OptimizedPathAveragedHeading
 			: currentVahicleSection.OptimizedInitialHeading + (currentVahicleSection.OptimizedPathAvergaedSlope * currentDatasnapshot.DistanceFromStartOfSection);
+
+		currentDatasnapshot.RefrenceHeading = currentVahicleSection.SectionType === SectionType.Straight 
+			? currentVahicleSection.PathAveragedHeading
+			: currentVahicleSection.InitialHeading + (currentVahicleSection.PathAvergaedSlope * currentDatasnapshot.DistanceFromStartOfSection);
 		
 		// Lateral Distance and Accumulated Lateral Distance Calculation (we use these to decide if lane departure happened)
-		currentDatasnapshot.Theta = currentDatasnapshot.RefrenceHeading - currentDatasnapshot.AveragedHeading; // rename to currentAveragedHeading
+		currentDatasnapshot.Theta = currentDatasnapshot.OptimizedRefrenceHeading - currentDatasnapshot.AveragedHeading; // rename to currentAveragedHeading
 
 		// We want to find Perpendicular field of a right triangle
 		currentDatasnapshot.LateralDistance = currentDatasnapshot.Distance * Math.sin(currentDatasnapshot.Theta * Math.PI / 180) // Sin(Theta) = P / H

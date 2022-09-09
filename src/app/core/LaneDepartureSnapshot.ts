@@ -10,7 +10,8 @@ export class LaneDepartureSnapshot {
 	AccumulativeDistance: number = 0;
 
 	// section: LaneDepartureSnapshot | undefined = undefined;
-    RefrenceHeading: number = 0;
+	RefrenceHeading: number = 0;
+    OptimizedRefrenceHeading: number = 0;
 	DistanceFromStartOfSection: number = 0;
 	Theta: number = 0;
 	LateralDistance: number = 0;
