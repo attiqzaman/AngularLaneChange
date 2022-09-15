@@ -68,8 +68,10 @@ export class LaneDepartureRoutine {
 		let previousToPreviousDataSnapshot = this.DataSnapshots[this.DataSnapshots.length - 2];
 		currentDatasnapshot.AveragedHeading = (previousToPreviousDataSnapshot.Heading + previousDataSnapshot.Heading + currentDatasnapshot.Heading) / 3;
 		
-		const currentVahicleSection = this.GetSectionOfVehicle(currentDatasnapshot.Latitude, currentDatasnapshot.Longitude, allSections);
+		const [currentVahicleSection, sectionInfo] = this.GetSectionOfVehicle(currentDatasnapshot.Latitude, currentDatasnapshot.Longitude, allSections);
+		currentDatasnapshot.SectionInfo = sectionInfo; 
 		if (currentVahicleSection === undefined) {
+			// what to do when we cant find point in any section?
 			this.Counter++;
 			return;
 		}
@@ -177,43 +179,117 @@ export class LaneDepartureRoutine {
 			currentDataSnapshot.AccumulativeLateralDistance < previousDataSnapshot.AccumulativeLateralDistance;
 	}
 
-	GetSectionOfVehicle(latitude: number, longitude: number, allSections: Section[]): Section | undefined
+	GetSectionOfVehicle(latitude: number, longitude: number, allSections: Section[]): [Section | undefined, string]
 	{
-		const change: number = 0.00005;
-		for (var section of allSections)
-		{
-			let minLatitude: number;
-			let maxLatitude: number;
-			let minLongitude: number;
-			let maxLongitude: number;
+		for (let index = 0; index < allSections.length; index++) {
+			// TODO: currentSection should start from the previous point's section instead of starting from beginning of all sections.
+			const currentSection = allSections[index];
+			var pointIsInCurrentSection = this.IsLocationInSection(latitude, longitude, currentSection);
 
-			if (section.EndLatitude >= section.StartLatitude) {
-				minLatitude = section.StartLatitude;
-				maxLatitude = section.EndLatitude; 
-			} else {
-				minLatitude = section.EndLatitude;
-				maxLatitude = section.StartLatitude; 
-			}
-
-			if (section.EndLongitude >= section.StartLongitude) {
-				minLongitude = section.StartLongitude;
-				maxLongitude = section.EndLongitude; 
-			} else {
-				minLongitude = section.EndLongitude;
-				maxLongitude = section.StartLongitude; 
-			}
-
-			minLatitude = minLatitude - change;
-			maxLatitude = maxLatitude + change;
-			minLongitude = minLongitude - change;
-			maxLongitude = maxLongitude + change;
-
-			if (latitude <= maxLatitude && latitude >= minLatitude && longitude <= maxLongitude && longitude >= minLongitude)
+			if (pointIsInCurrentSection)
 			{
-				return section;
+				// At this point we also want to find out if this point is `owned` by multiple sections. So, we will also check the next section.
+				const isLastSection = index === allSections.length - 1;
+				if (isLastSection)
+				{
+					// We are in the last section so no point in checking the next section since there is none.
+					return [currentSection, 'Single'];
+				}
+
+				const nextSection = allSections[index + 1];
+				var pointIsInNextSection = this.IsLocationInSection(latitude, longitude, nextSection);
+
+				if (pointIsInNextSection)
+				{
+					// We have a point that exists in 2 sections so we will have to figure out which section is closer to the point.
+					let distanceFromEndOfCurrentSection = Math.abs(distanceTo(
+						{lat: currentSection.EndLatitude, lon: currentSection.EndLongitude },
+						{lat: latitude, lon: longitude }
+					));
+
+					let distanceFromStartOfNextSection = Math.abs(distanceTo(
+						{lat: nextSection.StartLatitude, lon: nextSection.StartLongitude },
+						{lat: latitude, lon: longitude }
+					));
+
+					return distanceFromEndOfCurrentSection <= distanceFromStartOfNextSection ? [currentSection, 'Double'] : [nextSection, 'Double']
+				}
+
+				return [currentSection, 'Single'];
 			}
 		}
 
-		return undefined;
+		// We haven't been able to find point in any section, we will now check distances to all sections and assing this point to the section with min distance.
+		let indexOfSectionWithMinDistance: number = 0;
+		let currentMinDistance = Number.MAX_VALUE;
+		for (let index = 0; index < allSections.length; index++) 
+		{
+			const currentSection = allSections[index];
+			let distanceFromStartOfCurrentSection = Math.abs(distanceTo(
+				{lat: currentSection.StartLatitude, lon: currentSection.StartLongitude },
+				{lat: latitude, lon: longitude }
+			));
+
+			if (distanceFromStartOfCurrentSection < currentMinDistance)
+			{
+				currentMinDistance = distanceFromStartOfCurrentSection;
+				indexOfSectionWithMinDistance = index;
+			}
+		}
+
+		// we now have the section with Min distance, now we should check if point should be assigned to section before the selected section or not.
+		// We have a point that exists in 2 sections so we will have to figure out which section is closer to the point.
+		var selectedSection = allSections[indexOfSectionWithMinDistance]
+		if (indexOfSectionWithMinDistance === 0)
+		{
+			// first section, no previous section so no need to do anything more.
+			return [selectedSection, 'Single'];
+		}
+
+		var previousSection = allSections[indexOfSectionWithMinDistance - 1];
+
+		let distanceFromEndOfPreviousSection = Math.abs(distanceTo(
+			{lat: previousSection.EndLatitude, lon: previousSection.EndLongitude },
+			{lat: latitude, lon: longitude }
+		));
+
+		return distanceFromEndOfPreviousSection <= currentMinDistance ? [previousSection, 'Double'] : [selectedSection, 'Double']
+	}
+
+	IsLocationInSection(latitude: number, longitude: number, currentSection: Section): boolean
+	{
+		const change: number = 0.00005;
+		let minLatitude: number;
+		let maxLatitude: number;
+		let minLongitude: number;
+		let maxLongitude: number;
+
+		if (currentSection.EndLatitude >= currentSection.StartLatitude) {
+			minLatitude = currentSection.StartLatitude;
+			maxLatitude = currentSection.EndLatitude; 
+		} else {
+			minLatitude = currentSection.EndLatitude;
+			maxLatitude = currentSection.StartLatitude; 
+		}
+
+		if (currentSection.EndLongitude >= currentSection.StartLongitude) {
+			minLongitude = currentSection.StartLongitude;
+			maxLongitude = currentSection.EndLongitude; 
+		} else {
+			minLongitude = currentSection.EndLongitude;
+			maxLongitude = currentSection.StartLongitude; 
+		}
+
+		minLatitude = minLatitude - change;
+		maxLatitude = maxLatitude + change;
+		minLongitude = minLongitude - change;
+		maxLongitude = maxLongitude + change;
+
+		if (latitude <= maxLatitude && latitude >= minLatitude && longitude <= maxLongitude && longitude >= minLongitude)
+		{
+			return true;
+		}
+
+		return false;
 	}
 }

@@ -23,6 +23,7 @@ export class LaneDepartureSnapshot {
 	StartOfAlarm: boolean = false;
 	SectionStartIndex: number = -1; // Should use SectionId instead.
 	IsFirstPointInSection: boolean = false;
+	SectionInfo: string = 'Undefined';
 
 
     constructor(Latitude: number, Longitude: number, snapshotNumber: number, timeStamp: string, startTime: Date) 
