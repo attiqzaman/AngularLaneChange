@@ -18,6 +18,13 @@ export class Section {
 		this.MinHeadingInSection = NaN;
 		this.TotalSectionLength = NaN;
 		this.AccumulativeDistanceAtStart = NaN;
+		this.RectangleStartLatitude = NaN;
+		this.RectangleStartLongitude = NaN;
+		this.RectangleEndLatitude = NaN;
+		this.RectangleEndLongitude = NaN;
+		this.MidLatitude = NaN;
+		this.MidLongitude = NaN;
+		this.PerpendicularDistanceToMidPoint = NaN;
 	}
 
 	getSectionLength()
@@ -29,12 +36,19 @@ export class Section {
 	EndIndex: number;
 	StartLatitude: number;
     StartLongitude: number;
+	MidLatitude: number;
+    MidLongitude: number;
+	RectangleStartLatitude: number;
+    RectangleStartLongitude: number;
 	EndLatitude: number;
     EndLongitude: number;
+	RectangleEndLatitude: number;
+    RectangleEndLongitude: number;
 	SectionType: SectionType;
 	PathAveragedHeading: number;
 	PathAvergaedSlope: number;
 	InitialHeading: number;
+	PerpendicularDistanceToMidPoint: number;
 
 	OptimizedPathAveragedHeading: number;
 	OptimizedPathAvergaedSlope: number;
@@ -45,6 +59,21 @@ export class Section {
 
 	TotalSectionLength: number;
 	AccumulativeDistanceAtStart: number;
+	SectionRectangle?: SectionRectangle;
+}
+
+export interface SectionRectangle {
+	StartMaxLatitude: number;
+	StartMaxLongitude: number;
+	
+	StartMinLatitude: number;
+	StartMinLongitude: number;
+
+	EndMaxLatitude: number;
+	EndMaxLongitude: number;
+	
+	EndMinLatitude: number;
+	EndMinLongitude: number;
 }
 
 export enum SectionType {

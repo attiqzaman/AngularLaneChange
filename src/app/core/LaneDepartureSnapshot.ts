@@ -24,6 +24,7 @@ export class LaneDepartureSnapshot {
 	SectionStartIndex: number = -1; // Should use SectionId instead.
 	IsFirstPointInSection: boolean = false;
 	SectionInfo: string = 'Undefined';
+	PerpendicularDistanceToMidPoint: number = NaN; // this shouldn't be here but added for now for easy debugging.
 
 
     constructor(Latitude: number, Longitude: number, snapshotNumber: number, timeStamp: string, startTime: Date) 

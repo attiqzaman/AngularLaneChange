@@ -2,7 +2,7 @@
     /**A wrapper to keep all list of double arrays needed to generate road sections. */
 
 import { Snapshot } from "./Snapshot";
-import { ApplySmoothingfilter, AreSnapshotsOnSamePoint, CalculateAveragedDifferentialHeadings, CalculatePathAveragedDifferentialHeading, CalculatePathAveragedHeading, CalculatePathAveragedSlope, CalculatePathAveragedSlopeOfTransitionSection, GetAllNonStraightSections, GetStraightSections, OptimizeCurveSection, OptimizeStraightSection, OptimizeTransientSection, PathAveragedDifferentialHeadingReselect } from "./Util";
+import { ApplySmoothingfilter, AreSnapshotsOnSamePoint, CalculateAveragedDifferentialHeadings, CalculatePathAveragedDifferentialHeading, CalculatePathAveragedHeading, CalculatePathAveragedSlope, CalculatePathAveragedSlopeOfTransitionSection, CalculateRectangleOfSection, GetAllNonStraightSections, GetStraightSections, OptimizeCurveSection, OptimizeStraightSection, OptimizeTransientSection, PathAveragedDifferentialHeadingReselect } from "./Util";
 import { headingDistanceTo } from 'geolocation-utils'
 import { Section, SectionType } from "./Section";
 
@@ -177,8 +177,8 @@ import { Section, SectionType } from "./Section";
 			this.AllSections.push(this.StraightSections[0])
 			// Assume our path starts and ends at a straight section for now.
 			for (let i = 1; i < this.StraightSections.length; i++) {
-				const currentStraightSection = this.StraightSections[i];
-				const previousStraightSection = this.StraightSections[i - 1];
+				var currentStraightSection = this.StraightSections[i];
+				var previousStraightSection = this.StraightSections[i - 1];
 				
 				let rawNonStraightSection = new Section(previousStraightSection.EndIndex, currentStraightSection.StartIndex, SectionType.Unknown);
 				
@@ -219,6 +219,11 @@ import { Section, SectionType } from "./Section";
 				this.AllSections.push(rightTransientSection);
 				this.AllSections.push(currentStraightSection);
 			}
+
+			// create section meta data of bounding boxes.
+			this.AllSections.forEach(section => {
+				CalculateRectangleOfSection(section);
+			});
 		}
 
 		private AddSectionMetaData(section : Section) 
@@ -231,5 +236,16 @@ import { Section, SectionType } from "./Section";
 			// Also calculate the total length (accumulative distance) of section
 			section.TotalSectionLength = this.AccumulativeDistances[section.EndIndex] - this.AccumulativeDistances[section.StartIndex];
 			section.AccumulativeDistanceAtStart = this.AccumulativeDistances[section.StartIndex];
+
+			// rectangles start 1 point after the actual section starts and end 1 point before the actual section ends
+			section.RectangleStartLatitude = this.Latitudes[section.StartIndex + 1];
+			section.RectangleStartLongitude = this.Longitudes[section.StartIndex + 1];
+			section.RectangleEndLatitude = this.Latitudes[section.EndIndex - 1];
+			section.RectangleEndLongitude = this.Longitudes[section.EndIndex - 1];
+
+			// if we have a curved or transient section then we need the mid-point of the section too but for now we will calculate the midpoint for all sections
+			var midpoint = section.StartIndex + Math.floor((section.EndIndex - section.StartIndex)/2);
+			section.MidLatitude = this.Latitudes[midpoint];
+			section.MidLongitude = this.Longitudes[midpoint];
 		}
 	}

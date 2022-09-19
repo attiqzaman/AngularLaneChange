@@ -1,4 +1,4 @@
-import { distanceTo, headingDistanceTo } from "geolocation-utils";
+import { BoundingBox, distanceTo, headingDistanceTo, insideBoundingBox } from "geolocation-utils";
 import { PrintLdwSnapshots, PrintLdwSnapshotsAsCsv } from "./FileSaver";
 import { LaneDepartureSnapshot } from "./LaneDepartureSnapshot";
 import { MapService } from "./map.service";
@@ -76,8 +76,9 @@ export class LaneDepartureRoutine {
 			return;
 		}
 
-		currentDatasnapshot.SectionStartIndex = currentVahicleSection.StartIndex; 
-		// We need to figure out if this is the first point in a 'new section. (this should check SectionId in final version)
+		currentDatasnapshot.SectionStartIndex = currentVahicleSection.StartIndex;
+		currentDatasnapshot.PerpendicularDistanceToMidPoint = currentVahicleSection.PerpendicularDistanceToMidPoint;
+		// We need to figure out if this is the first point in a 'new section`. (this should check SectionId in final version)
 		if (currentDatasnapshot.SectionStartIndex === previousDataSnapshot.SectionStartIndex) {
 			currentDatasnapshot.DistanceFromStartOfSection = previousDataSnapshot.DistanceFromStartOfSection + currentDatasnapshot.Distance;
 		} else {
@@ -203,19 +204,19 @@ export class LaneDepartureRoutine {
 				{
 					// We have a point that exists in 2 sections so we will have to figure out which section is closer to the point.
 					let distanceFromEndOfCurrentSection = Math.abs(distanceTo(
-						{lat: currentSection.EndLatitude, lon: currentSection.EndLongitude },
+						{lat: currentSection.RectangleEndLatitude, lon: currentSection.RectangleEndLongitude },
 						{lat: latitude, lon: longitude }
 					));
 
 					let distanceFromStartOfNextSection = Math.abs(distanceTo(
-						{lat: nextSection.StartLatitude, lon: nextSection.StartLongitude },
+						{lat: nextSection.RectangleStartLatitude, lon: nextSection.RectangleStartLongitude },
 						{lat: latitude, lon: longitude }
 					));
 
 					return distanceFromEndOfCurrentSection <= distanceFromStartOfNextSection ? [currentSection, 'Double'] : [nextSection, 'Double']
 				}
 
-				return [currentSection, 'Single'];
+				return [currentSection, 'Single-DistanceBased'];
 			}
 		}
 
@@ -226,7 +227,7 @@ export class LaneDepartureRoutine {
 		{
 			const currentSection = allSections[index];
 			let distanceFromStartOfCurrentSection = Math.abs(distanceTo(
-				{lat: currentSection.StartLatitude, lon: currentSection.StartLongitude },
+				{lat: currentSection.RectangleStartLatitude, lon: currentSection.RectangleStartLongitude },
 				{lat: latitude, lon: longitude }
 			));
 
@@ -242,54 +243,64 @@ export class LaneDepartureRoutine {
 		var selectedSection = allSections[indexOfSectionWithMinDistance]
 		if (indexOfSectionWithMinDistance === 0)
 		{
-			// first section, no previous section so no need to do anything more.
-			return [selectedSection, 'Single'];
+			// first section, we will start assigning sections when points atleast reach first section.
+			return [undefined, 'PointBeforeFirstSection'];
 		}
 
 		var previousSection = allSections[indexOfSectionWithMinDistance - 1];
 
 		let distanceFromEndOfPreviousSection = Math.abs(distanceTo(
-			{lat: previousSection.EndLatitude, lon: previousSection.EndLongitude },
+			{lat: previousSection.RectangleEndLatitude, lon: previousSection.RectangleEndLongitude },
 			{lat: latitude, lon: longitude }
 		));
 
-		return distanceFromEndOfPreviousSection <= currentMinDistance ? [previousSection, 'Double'] : [selectedSection, 'Double']
+		return distanceFromEndOfPreviousSection <= currentMinDistance ? [previousSection, 'Double-DistanceBased'] : [selectedSection, 'Double-DistanceBased']
 	}
 
 	IsLocationInSection(latitude: number, longitude: number, currentSection: Section): boolean
 	{
-		const change: number = 0.00005;
-		let minLatitude: number;
-		let maxLatitude: number;
-		let minLongitude: number;
-		let maxLongitude: number;
-
-		if (currentSection.EndLatitude >= currentSection.StartLatitude) {
-			minLatitude = currentSection.StartLatitude;
-			maxLatitude = currentSection.EndLatitude; 
-		} else {
-			minLatitude = currentSection.EndLatitude;
-			maxLatitude = currentSection.StartLatitude; 
+		var sectionRectangle = currentSection.SectionRectangle;
+		if (sectionRectangle != undefined) {
+			var boundingBox: BoundingBox = {
+				topLeft:     {latitude: sectionRectangle.StartMinLatitude, longitude: sectionRectangle.StartMinLongitude}, 
+				bottomRight: {latitude: sectionRectangle.EndMaxLatitude, longitude: sectionRectangle.EndMaxLongitude}
+			}
+			  
+			return insideBoundingBox({latitude: latitude, longitude: longitude}, boundingBox)
 		}
+		
+		throw new Error("no bounding rectangle defined for section.");
+		// let minLatitude: number;
+		// let maxLatitude: number;
+		// let minLongitude: number;
+		// let maxLongitude: number;
 
-		if (currentSection.EndLongitude >= currentSection.StartLongitude) {
-			minLongitude = currentSection.StartLongitude;
-			maxLongitude = currentSection.EndLongitude; 
-		} else {
-			minLongitude = currentSection.EndLongitude;
-			maxLongitude = currentSection.StartLongitude; 
-		}
+		// if (currentSection.RectangleEndLatitude >= currentSection.RectangleStartLatitude) {
+		// 	minLatitude = currentSection.StartLatitude;
+		// 	maxLatitude = currentSection.EndLatitude; 
+		// } else {
+		// 	minLatitude = currentSection.EndLatitude;
+		// 	maxLatitude = currentSection.StartLatitude; 
+		// }
 
-		minLatitude = minLatitude - change;
-		maxLatitude = maxLatitude + change;
-		minLongitude = minLongitude - change;
-		maxLongitude = maxLongitude + change;
+		// if (currentSection.EndLongitude >= currentSection.StartLongitude) {
+		// 	minLongitude = currentSection.StartLongitude;
+		// 	maxLongitude = currentSection.EndLongitude; 
+		// } else {
+		// 	minLongitude = currentSection.EndLongitude;
+		// 	maxLongitude = currentSection.StartLongitude; 
+		// }
 
-		if (latitude <= maxLatitude && latitude >= minLatitude && longitude <= maxLongitude && longitude >= minLongitude)
-		{
-			return true;
-		}
+		// minLatitude = minLatitude - change;
+		// maxLatitude = maxLatitude + change;
+		// minLongitude = minLongitude - change;
+		// maxLongitude = maxLongitude + change;
 
-		return false;
+		// if (latitude <= maxLatitude && latitude >= minLatitude && longitude <= maxLongitude && longitude >= minLongitude)
+		// {
+		// 	return true;
+		// }
+
+		// return false;
 	}
 }

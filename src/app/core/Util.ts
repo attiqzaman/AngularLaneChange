@@ -1,6 +1,9 @@
+import { headingDistanceTo, headingTo, normalizeHeading } from "geolocation-utils";
 import { LaneDepartureSnapshot } from "./LaneDepartureSnapshot";
-import { Section, SectionType } from "./Section";
+import { Section, SectionRectangle, SectionType } from "./Section";
 import { Snapshot } from "./Snapshot";
+
+const EARTH_RADIUS = 6378137;
 
 var dsp = require('digitalsignals');
 
@@ -440,4 +443,68 @@ export function ApplySmoothingfilter(input: number[], cutOffFrequency1: number, 
 	}
 
 	return smoothedData.slice(0, input.length);
+}
+
+export function CalculateRectangleOfSection(section: Section)
+{
+	var width = 10;
+	let rectangle: SectionRectangle;
+
+	if (section.SectionType === SectionType.Straight) 
+	{
+		let headingFromStartToEndOfRectangle = normalizeHeading(headingTo( // normalizeHeading makes heading to be in 0 : 360 range
+			{lat: section.RectangleStartLatitude, lon: section.RectangleStartLongitude },
+			{lat: section.RectangleEndLatitude, lon: section.RectangleEndLongitude }
+		));
+
+		// we need angle wrt east so we need to add 90 degrees to the above answer
+		var headingWrtEast = headingFromStartToEndOfRectangle + 90;
+
+		var distanceRatio = (width / 2) / EARTH_RADIUS
+		rectangle = {
+			StartMaxLatitude: section.RectangleStartLatitude + (distanceRatio * Math.cos(headingWrtEast)),
+			StartMaxLongitude: section.RectangleStartLongitude + (distanceRatio * Math.sin(headingWrtEast)),
+	
+			StartMinLatitude: section.RectangleStartLatitude - (distanceRatio * Math.cos(headingWrtEast)),
+			StartMinLongitude: section.RectangleStartLongitude - (distanceRatio * Math.sin(headingWrtEast)),
+	
+			EndMaxLatitude: section.RectangleEndLatitude + (distanceRatio * Math.cos(headingWrtEast)),
+			EndMaxLongitude: section.RectangleEndLongitude + (distanceRatio * Math.sin(headingWrtEast)),
+	
+			EndMinLatitude: section.RectangleEndLatitude - (distanceRatio * Math.cos(headingWrtEast)),
+			EndMinLongitude: section.RectangleEndLongitude - (distanceRatio * Math.sin(headingWrtEast))
+		}
+	} else 
+	{
+		// curve or transient section
+		let headingDistanceFromStartToMidOfRectangle = headingDistanceTo( 
+			{lat: section.RectangleStartLatitude, lon: section.RectangleStartLongitude },
+			{lat: section.MidLatitude, lon: section.MidLongitude }
+		);
+
+		// we need angle wrt east so we need to add 90 degrees to the above answer
+		var headingWrtEast = normalizeHeading(headingDistanceFromStartToMidOfRectangle.heading) + 90; // normalizeHeading makes heading to be in 0 : 360 range
+		var minDistanceToMidPoint = headingDistanceFromStartToMidOfRectangle.distance; // min distance from P1 to Pm
+		section.PerpendicularDistanceToMidPoint = Math.abs(minDistanceToMidPoint * Math.sin(headingWrtEast)); // d
+
+		// now our width of ractangle will be d + w
+		var distanceRatio = (section.PerpendicularDistanceToMidPoint + width) / EARTH_RADIUS;
+		var coefficient = section.PathAvergaedSlope >= 0 ? 1 : -1;
+
+		rectangle = {
+			StartMaxLatitude: section.RectangleStartLatitude + (coefficient * (distanceRatio * Math.cos(headingWrtEast))),
+			StartMaxLongitude: section.RectangleStartLongitude + (coefficient * (distanceRatio * Math.sin(headingWrtEast))),
+	
+			StartMinLatitude: section.RectangleStartLatitude,
+			StartMinLongitude: section.RectangleStartLongitude,
+	
+			EndMaxLatitude: section.RectangleEndLatitude + (coefficient * (distanceRatio * Math.cos(headingWrtEast))),
+			EndMaxLongitude: section.RectangleEndLongitude + (coefficient * (distanceRatio * Math.sin(headingWrtEast))),
+	
+			EndMinLatitude: section.RectangleEndLatitude,
+			EndMinLongitude: section.RectangleEndLongitude
+		}
+	}
+
+	section.SectionRectangle = rectangle;
 }
