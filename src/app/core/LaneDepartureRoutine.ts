@@ -78,6 +78,10 @@ export class LaneDepartureRoutine {
 
 		currentDatasnapshot.SectionStartIndex = currentVahicleSection.StartIndex;
 		currentDatasnapshot.PerpendicularDistanceToMidPoint = currentVahicleSection.PerpendicularDistanceToMidPoint;
+		currentDatasnapshot.PathAvergaedSlope = currentVahicleSection.PathAvergaedSlope;
+		currentDatasnapshot.OptimizedPathAvergaedSlope = currentVahicleSection.OptimizedPathAvergaedSlope;
+		currentDatasnapshot.InitialHeading = currentVahicleSection.InitialHeading;
+		currentDatasnapshot.OptimizedInitialHeading = currentVahicleSection.OptimizedInitialHeading;
 		// We need to figure out if this is the first point in a 'new section`. (this should check SectionId in final version)
 		if (currentDatasnapshot.SectionStartIndex === previousDataSnapshot.SectionStartIndex) {
 			currentDatasnapshot.DistanceFromStartOfSection = previousDataSnapshot.DistanceFromStartOfSection + currentDatasnapshot.Distance;

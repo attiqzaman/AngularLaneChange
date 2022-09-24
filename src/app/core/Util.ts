@@ -485,10 +485,10 @@ export function CalculateRectangleOfSection(section: Section)
 		// we need angle wrt east so we need to add 90 degrees to the above answer
 		var headingWrtEast = normalizeHeading(headingDistanceFromStartToMidOfRectangle.heading) + 90; // normalizeHeading makes heading to be in 0 : 360 range
 		var minDistanceToMidPoint = headingDistanceFromStartToMidOfRectangle.distance; // min distance from P1 to Pm
-		section.PerpendicularDistanceToMidPoint = Math.abs(minDistanceToMidPoint * Math.sin(headingWrtEast)); // d
+		section.PerpendicularDistanceToMidPoint = minDistanceToMidPoint * Math.sin(headingWrtEast); // d
 
 		// now our width of ractangle will be d + w
-		var distanceRatio = (section.PerpendicularDistanceToMidPoint + width) / EARTH_RADIUS;
+		var distanceRatio = (Math.abs(section.PerpendicularDistanceToMidPoint) + width) / EARTH_RADIUS;
 		var coefficient = section.PathAvergaedSlope >= 0 ? 1 : -1;
 
 		rectangle = {
