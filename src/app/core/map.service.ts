@@ -29,8 +29,12 @@ export class MapService {
 	initMap(): void {		
 		var mark = null;
 		var latLng: google.maps.LatLng;
-		let startLatLng = new google.maps.LatLng(45.639403, -92.992107);
-		let endLatLng = new google.maps.LatLng(45.831359, -92.982524);
+		// for route A use the following hardcoded values
+		let startLatLng = new google.maps.LatLng(46.726195, -92.215144);
+		let endLatLng = new google.maps.LatLng(46.696495, -92.366314);
+		// for route B use the following hardcoded values
+		// let startLatLng = new google.maps.LatLng(46.696271, -92.364930);
+		// let endLatLng = new google.maps.LatLng(46.726021, -92.213864);
 		let pointOfInterestLatLng = new google.maps.LatLng(46.72623549, -92.21377368);
 
 		const directionsService = new google.maps.DirectionsService();
@@ -86,8 +90,8 @@ export class MapService {
 		);
 
 		const on1stBtnClickHandler = () => {
-			startLatLng = latLng;
-			startLatLng = new google.maps.LatLng(45.639403, -92.992107);
+			// startLatLng = latLng;
+			// startLatLng = new google.maps.LatLng(45.639403, -92.992107);
 			(document.getElementById("firstDir") as HTMLInputElement).value = JSON.stringify(startLatLng.toJSON(), null, 2);
 		};
 		document.getElementById("firstButton")?.addEventListener(
@@ -96,8 +100,8 @@ export class MapService {
 		);
 
 		const on2ndBtnClickHandler = () => {
-			endLatLng = latLng;
-			endLatLng = new google.maps.LatLng(45.831359, -92.982524);
+			// endLatLng = latLng;
+			// endLatLng = new google.maps.LatLng(45.831359, -92.982524);
 
 			(document.getElementById("secondDir") as HTMLInputElement).value = JSON.stringify(endLatLng.toJSON(), null, 2);
 		};
