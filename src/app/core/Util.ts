@@ -364,7 +364,7 @@ export function GetAllNonStraightSections(straightSections: Section[]): Section[
 }
 
 export function CalculateAveragedDifferentialHeadings(differentialHeadings: number[]): number[] {
-	let numberOfHeadingsToAverage = 20; // 10 points ahead and 10 points behind
+	let numberOfHeadingsToAverage = 20; // 20 points ahead and 20 points behind
 	let averagedHeadings: number[] = Array(differentialHeadings.length).fill(0);
 
 	// We can't average start and of array on both sides so just copy over original values
@@ -376,12 +376,12 @@ export function CalculateAveragedDifferentialHeadings(differentialHeadings: numb
 	}
 
 	for (let i = numberOfHeadingsToAverage; i < differentialHeadings.length - 1 - numberOfHeadingsToAverage; i++) {
-		let sumHeading = differentialHeadings[i];
-		for (let j = 0; j < numberOfHeadingsToAverage; j++) {
-			sumHeading = sumHeading + differentialHeadings[i + 1] + differentialHeadings[i - 1];
-		}
-
-		let averagedHeading = sumHeading / (2*numberOfHeadingsToAverage + 1)
+		// slice the array into 20 points around current point.
+		let startIndex = i - numberOfHeadingsToAverage;
+		let endIndex = i + numberOfHeadingsToAverage + 1; // endIndex is excluded in slice.
+		var slice =  differentialHeadings.slice(startIndex, endIndex);
+		var sumHeading = slice.reduce((a, b) => a + b);
+		let averagedHeading = sumHeading / (endIndex - startIndex)
 		averagedHeadings[i] = averagedHeading;
 	}
 
