@@ -74,7 +74,6 @@ import { Section, SectionType } from "./Section";
 			this.Accuracies.push(0);
 			this.AccumulativeDistances.push(0);
 
-
 			for (let index = 0; index < sortedCompleteRoute.length; index++)
 			{
 				// let index = i - 1;
@@ -98,31 +97,18 @@ import { Section, SectionType } from "./Section";
 						{lat: this.Latitudes[index], lon: this.Longitudes[index]}
 					)
 
-                    this.Distances.push(headingDistance.distance)
 					this.OutHeadings.push(headingDistance.heading + 360);
-					// let slope = (this.OutHeadings[index] - this.OutHeadings[index - 1]) / this.Distances[index];
-					// this.Slopes.push(slope);
 					this.Accuracies.push(currentSnapshot.Accuracy);
-					this.AccumulativeDistances.push(this.Distances[index] + this.AccumulativeDistances[index - 1]);
+					this.AccumulativeDistances.push(headingDistance.distance + this.AccumulativeDistances[index - 1]);
 				}
 			}
 
-			// SmoothedHeading should replace AverageHeadings
-			// this.AverageHeadings.push(0);
-
-			// for (let i = 1; i < this.OutHeadings.length; i++)
-			// {
-			// 	if (i < 5 || i > this.OutHeadings.length - 6)
-			// 	{
-			// 		// They really want to see 0 in excel instead of just not showing the row or keeping the raw value.
-			// 		this.AverageHeadings.push(0);
-			// 	}
-			// 	else
-			// 	{
-			// 		this.AverageHeadings.push((this.OutHeadings[i - 4] + this.OutHeadings[i - 3] + this.OutHeadings[i - 2] + this.OutHeadings[i - 1] +
-			// 			this.OutHeadings[i] + this.OutHeadings[i + 1] + this.OutHeadings[i + 2] + this.OutHeadings[i + 3] + this.OutHeadings[i + 4]) / 9);
-			// 	}
-			// }
+			// We want to use averaged distance, for now we will keep the Distances array, once this decision is final
+			// we should get rid of the Distances array and use a single averageDistanceBetweenPoints variable everywhere.
+			const averageDistanceBetweenPoints = this.AccumulativeDistances[this.AccumulativeDistances.length - 1] / this.AccumulativeDistances.length - 2;
+			for (let i = 0; i < this.AccumulativeDistances.length; i++) {
+				this.Distances.push(averageDistanceBetweenPoints);
+			}
 
 			this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.cutOffFrequency1, this.cutOffFrequency2);
 
