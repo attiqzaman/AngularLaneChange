@@ -250,11 +250,11 @@ export function OptimizeCurveSection(curveSection: Section, headings: number[], 
 	// we will try to find the optimum PAS value between 0.9PAS to 1.1PAS. PAS which produces the min ALS
 	// is the optimum PAH value.
 
-	const pathAveragedSlopeMaxValue = curveSection.PathAvergaedSlope + Math.abs(0.1 * curveSection.PathAvergaedSlope);
-	const pathAveragedSlopeMinValue = curveSection.PathAvergaedSlope - Math.abs(0.1 * curveSection.PathAvergaedSlope);
+	const pathAveragedSlopeMaxValue = curveSection.PathAvergaedSlope + Math.abs(0.3 * curveSection.PathAvergaedSlope);
+	const pathAveragedSlopeMinValue = curveSection.PathAvergaedSlope - Math.abs(0.3 * curveSection.PathAvergaedSlope);
 	const deltaPathAveragedSlope = Math.abs((pathAveragedSlopeMaxValue - pathAveragedSlopeMinValue) / 100);
 
-	const initialHeadingsRange = headings.slice(curveSection.StartIndex - 1, curveSection.StartIndex + 4); // 2 points on each side of original IH
+	const initialHeadingsRange = headings.slice(curveSection.StartIndex - 5, curveSection.StartIndex + 5); // 2 points on each side of original IH
 	const initialHeadingMaxValue = Math.max.apply(null, initialHeadingsRange);
 	const initialHeadingMinValue = Math.min.apply(null, initialHeadingsRange);
 	const deltaInitialHeading = (initialHeadingMaxValue - initialHeadingMinValue) / 100;
@@ -279,7 +279,12 @@ export function OptimizeCurveSection(curveSection: Section, headings: number[], 
 				// let href_k = potentialInitialHeadingValue +  distances[index]*potentialPathAveragedSlope; 
 				let theta = headingAtPoint - href_k;
 				let thetaInRadians = theta * Math.PI / 180;
-				als = als + distances[index] * Math.sin(thetaInRadians);
+				//als = als + distances[index] * Math.sin(thetaInRadians);
+				if (als==0)
+                {als = als + distances[index] * Math.cos(thetaInRadians);
+                } else
+                {als = als + distances[index] * Math.sin(thetaInRadians);}
+
 			}
 	
 			if (Math.abs(als) < Math.abs(currentMinimumAlsValue)) {
@@ -364,7 +369,7 @@ export function GetAllNonStraightSections(straightSections: Section[]): Section[
 }
 
 export function CalculateAveragedDifferentialHeadings(differentialHeadings: number[]): number[] {
-	let numberOfHeadingsToAverage = 20; // 20 points ahead and 20 points behind
+	let numberOfHeadingsToAverage = 10; // 20 points ahead and 20 points behind
 	let averagedHeadings: number[] = Array(differentialHeadings.length).fill(0);
 
 	// We can't average start and of array on both sides so just copy over original values
@@ -489,6 +494,7 @@ export function CalculateRectangleOfSection(section: Section)
 
 		// now our width of ractangle will be d + w
 		var distanceRatio = (Math.abs(section.PerpendicularDistanceToMidPoint) + width) / EARTH_RADIUS;
+		var distanceRatio2 = (width - section.PerpendicularDistanceToMidPoint) / EARTH_RADIUS;
 		var coefficient = section.PathAvergaedSlope >= 0 ? 1 : -1;
 
 		rectangle = {
@@ -504,6 +510,25 @@ export function CalculateRectangleOfSection(section: Section)
 			EndMinLatitude: section.RectangleEndLatitude,
 			EndMinLongitude: section.RectangleEndLongitude
 		}
+		//overwriting the minimum lat and long according to the condition
+        if (section.PerpendicularDistanceToMidPoint < width)
+        {
+            rectangle.StartMinLatitude = section.RectangleStartLatitude - (coefficient * (distanceRatio2 * Math.cos(headingWrtEast)));
+            rectangle.StartMinLongitude = section.RectangleStartLongitude - (coefficient * (distanceRatio2 * Math.sin(headingWrtEast)));
+
+            rectangle.EndMinLatitude = section.RectangleEndLatitude - (coefficient * (distanceRatio2 * Math.cos(headingWrtEast)));
+            rectangle.EndMinLongitude = section.RectangleEndLongitude - (coefficient * (distanceRatio2 * Math.sin(headingWrtEast)))
+            
+        } else
+        {
+            rectangle.StartMinLatitude = section.RectangleStartLatitude;
+            rectangle.StartMinLongitude = section.RectangleStartLongitude;
+
+            rectangle.EndMinLatitude = section.RectangleEndLatitude;
+            rectangle.EndMinLongitude = section.RectangleEndLongitude
+
+        }
+
 	}
 
 	section.SectionRectangle = rectangle;

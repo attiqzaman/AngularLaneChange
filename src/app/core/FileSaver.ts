@@ -46,14 +46,18 @@ export function PrintRoute(route: ProcessedRouteWrapper)
 	fileName = `${route.UserId}_${route.cutOffFrequency1}_${route.cutOffFrequency2}_${currentTime}.csv`;
 
 	let allRows: string[] = [];
-	allRows.push(`lat, long, distance, accumulated distance, raw heading, smoothed heading, calculated heading, opt calculated heading, section type mask, section type, PAH/IH, optimized PAH/IH, PAHS, optimized PAHS`);
+	//allRows.push(`lat, long, distance, accumulated distance, raw heading, smoothed heading, calculated heading, opt calculated heading, section type mask, section type, PAH/IH, optimized PAH/IH, PAHS, optimized PAHS`);
+	allRows.push(`lat, long, distance, accumulated distance, average distance, accumulated average distance, raw heading, smoothed heading, differential heading, average differential heading, average heading, calculated heading, opt calculated heading, section type mask, section type, PAH/IH, optimized PAH/IH, PAHS, optimized PAHS`);
 	for (let index = 1; index < route.Distances.length; index++) {
 		
 		let sectionDetails = getSectionDetailsInCsvFormat(index, route.AllSections, route.SmoothedHeading);
 
 		allRows.push(`${route.Latitudes[index]}, ${route.Longitudes[index]},` +
-		`${route.Distances[index]}, ${route.AccumulativeDistances[index]},` +
-		`${route.OutHeadings[index]}, ${route.SmoothedHeading[index]}, ${sectionDetails}`)
+		`${route.Distances[index]}, ${route.AccumulativeDistances[index]},` + 
+		`${route.AverageDistances[index]}, ${route.AverageAccumulativeDistances[index]},` +
+		`${route.OutHeadings[index]}, ${route.SmoothedHeading[index]}, ${route.DifferentialHeadings[index]}, ${route.AveragedDifferentialHeadings[index]}, ${route.AverageHeadings[index]}, ${sectionDetails}`)
+
+		//`${route.OutHeadings[index]}, ${route.SmoothedHeading[index]}, ${sectionDetails}`)
 	}
 
 	const data: Blob = new Blob([allRows.join('\n')],  {type: 'text/csv'});

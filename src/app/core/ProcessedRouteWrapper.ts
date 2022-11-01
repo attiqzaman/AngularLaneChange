@@ -15,6 +15,7 @@ import { Section, SectionType } from "./Section";
 		SortedSnapshots: Snapshot[];
 
         Distances: number[] = [];
+		AverageDistances: number[] = [];
 		Latitudes: number[] = [];
 		Longitudes: number[] = [];
 		SmoothedHeading: number[] = [];
@@ -22,6 +23,7 @@ import { Section, SectionType } from "./Section";
 		Slopes: number[] = [];
 		Accuracies: number[] = [];
 		AccumulativeDistances: number[] = [];
+		AverageAccumulativeDistances: number[] = [];
 		AverageHeadings: number[] = [];
 		DifferentialHeadings: number[] = [];
 		cutOffFrequency2: number;
@@ -97,7 +99,10 @@ import { Section, SectionType } from "./Section";
 						{lat: this.Latitudes[index], lon: this.Longitudes[index]}
 					)
 
+
+					//this.Distances.push(headingDistance.distance)
 					this.OutHeadings.push(headingDistance.heading + 360);
+					this.Distances.push(headingDistance.distance)
 					this.Accuracies.push(currentSnapshot.Accuracy);
 					this.AccumulativeDistances.push(headingDistance.distance + this.AccumulativeDistances[index - 1]);
 				}
@@ -105,11 +110,12 @@ import { Section, SectionType } from "./Section";
 
 			// We want to use averaged distance, for now we will keep the Distances array, once this decision is final
 			// we should get rid of the Distances array and use a single averageDistanceBetweenPoints variable everywhere.
-			const averageDistanceBetweenPoints = this.AccumulativeDistances[this.AccumulativeDistances.length - 1] / this.AccumulativeDistances.length - 2;
-			for (let i = 0; i < this.AccumulativeDistances.length; i++) {
-				this.Distances.push(averageDistanceBetweenPoints);
-			}
 
+			const averageDistanceBetweenPoints = this.AccumulativeDistances[this.AccumulativeDistances.length - 1] / (this.AccumulativeDistances.length - 2);
+			for (let i = 0; i < this.AccumulativeDistances.length; i++) {
+				this.AverageDistances.push(averageDistanceBetweenPoints);
+				this.AverageAccumulativeDistances.push(averageDistanceBetweenPoints + this.AccumulativeDistances[i - 1]);
+			}
 			this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.cutOffFrequency1, this.cutOffFrequency2);
 
 			for (let i = 1; i < this.SmoothedHeading.length; i++) {
@@ -130,7 +136,7 @@ import { Section, SectionType } from "./Section";
 			// * any spot between straight sections which is less than 50 m (parameterised) then its single straight section
 			// * if the spot between straight sections is alittle more than 50 meters then we compare the PAH of both straight
 			// sections and if its less than a threhold (0.1 m/degree) then we consider that one single straight section
-			const MinimumPointsBetweenStraightSections = 25;
+			const MinimumPointsBetweenStraightSections = 75;
 
 			let previousStraightSectionPointer = 0;
 			for (let i = 1; i < straightSections.length; i++) {
@@ -171,10 +177,12 @@ import { Section, SectionType } from "./Section";
 				// we need to process this section more to get the transient sections
 				let pathAveragedDifferentialHeading1 = CalculatePathAveragedDifferentialHeading(rawNonStraightSection, this.AveragedDifferentialHeadings, this.Distances, this.AccumulativeDistances);
 				let reSelectedSection1 = PathAveragedDifferentialHeadingReselect(rawNonStraightSection, this.AveragedDifferentialHeadings, pathAveragedDifferentialHeading1);
-
+				let trueCurveSection= reSelectedSection1
+				
+				//commented following three lines below and added one line above to get rid of the 2nd iteration
 				// rerun the padh and reselect process.
-				let pathAveragedDifferentialHeading2 = CalculatePathAveragedDifferentialHeading(reSelectedSection1, this.AveragedDifferentialHeadings, this.Distances, this.AccumulativeDistances);
-				let trueCurveSection = PathAveragedDifferentialHeadingReselect(reSelectedSection1, this.AveragedDifferentialHeadings, pathAveragedDifferentialHeading2);
+				//let pathAveragedDifferentialHeading2 = CalculatePathAveragedDifferentialHeading(reSelectedSection1, this.AveragedDifferentialHeadings, this.Distances, this.AccumulativeDistances);
+				//let trueCurveSection = PathAveragedDifferentialHeadingReselect(reSelectedSection1, this.AveragedDifferentialHeadings, pathAveragedDifferentialHeading2);
 				trueCurveSection.SectionType = SectionType.Curved;
 
 				let pathAveragedSlopeForCurveSection = CalculatePathAveragedSlope(trueCurveSection, this.Slopes, this.Distances, this.AccumulativeDistances);
@@ -185,19 +193,36 @@ import { Section, SectionType } from "./Section";
 
 				// now we have curve section, the sections to the right and left are transient sections.
 				let leftTransientSection = new Section(rawNonStraightSection.StartIndex, trueCurveSection.StartIndex, SectionType.Transient);
-				let pathAveragedSlopeForLeftTransientSection = CalculatePathAveragedSlopeOfTransitionSection(leftTransientSection, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
-				leftTransientSection.PathAvergaedSlope = pathAveragedSlopeForLeftTransientSection;
-				leftTransientSection.InitialHeading = currentStraightSection.OptimizedPathAveragedHeading;
-				OptimizeTransientSection(leftTransientSection);
+				//let pathAveragedSlopeForLeftTransientSection = CalculatePathAveragedSlopeOfTransitionSection(leftTransientSection, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
+				//leftTransientSection.PathAvergaedSlope = pathAveragedSlopeForLeftTransientSection;
+				leftTransientSection.InitialHeading = previousStraightSection.PathAveragedHeading;
+                var sectionLengthLeftTransient = this.AccumulativeDistances[leftTransientSection.EndIndex] - this.AccumulativeDistances[leftTransientSection.StartIndex];
+                let pathAveragedSlopeForLeftTransientSection = (trueCurveSection.InitialHeading-leftTransientSection.InitialHeading)/sectionLengthLeftTransient;
+                leftTransientSection.PathAvergaedSlope = pathAveragedSlopeForLeftTransientSection;
+                leftTransientSection.OptimizedInitialHeading = previousStraightSection.OptimizedPathAveragedHeading;
+                let OptimizedpathAveragedSlopeForLeftTransientSection = (trueCurveSection.OptimizedInitialHeading-leftTransientSection.OptimizedInitialHeading)/sectionLengthLeftTransient;
+                leftTransientSection.OptimizedPathAvergaedSlope = OptimizedpathAveragedSlopeForLeftTransientSection;
+
+				//leftTransientSection.InitialHeading = currentStraightSection.OptimizedPathAveragedHeading;
+				//OptimizeTransientSection(leftTransientSection);
 				this.AddSectionMetaData(leftTransientSection);
 
 				let rightTransientSection = new Section(trueCurveSection.EndIndex, rawNonStraightSection.EndIndex, SectionType.Transient);
-				let pathAveragedSlopeForRightTransientSection = CalculatePathAveragedSlopeOfTransitionSection(rightTransientSection, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
-				rightTransientSection.PathAvergaedSlope = pathAveragedSlopeForRightTransientSection;
+				//let pathAveragedSlopeForRightTransientSection = CalculatePathAveragedSlopeOfTransitionSection(rightTransientSection, this.SmoothedHeading, this.Distances, this.AccumulativeDistances);
+				//rightTransientSection.PathAvergaedSlope = pathAveragedSlopeForRightTransientSection;
 
 				var sectionLength = this.AccumulativeDistances[trueCurveSection.EndIndex] - this.AccumulativeDistances[trueCurveSection.StartIndex];
-				rightTransientSection.InitialHeading = trueCurveSection.OptimizedInitialHeading + (trueCurveSection.OptimizedPathAvergaedSlope * sectionLength);
-				OptimizeTransientSection(rightTransientSection);
+				//rightTransientSection.InitialHeading = trueCurveSection.OptimizedInitialHeading + (trueCurveSection.OptimizedPathAvergaedSlope * sectionLength);
+				rightTransientSection.InitialHeading = trueCurveSection.InitialHeading + (trueCurveSection.PathAvergaedSlope * sectionLength);
+                var sectionLengthRightTransient = this.AccumulativeDistances[rightTransientSection.EndIndex] - this.AccumulativeDistances[rightTransientSection.StartIndex];
+                let pathAveragedSlopeForRightTransientSection = (currentStraightSection.PathAveragedHeading-rightTransientSection.InitialHeading)/sectionLengthRightTransient;
+                rightTransientSection.PathAvergaedSlope = pathAveragedSlopeForRightTransientSection;
+				rightTransientSection.OptimizedInitialHeading = trueCurveSection.OptimizedInitialHeading + (trueCurveSection.OptimizedPathAvergaedSlope * sectionLength);
+                let OptimizedpathAveragedSlopeForRightTransientSection = (currentStraightSection.OptimizedPathAveragedHeading-rightTransientSection.OptimizedInitialHeading)/sectionLengthRightTransient;
+                rightTransientSection.OptimizedPathAvergaedSlope = OptimizedpathAveragedSlopeForRightTransientSection;
+
+
+				//OptimizeTransientSection(rightTransientSection);
 				this.AddSectionMetaData(rightTransientSection);
 				
 				this.AllSections.push(leftTransientSection);
@@ -208,7 +233,14 @@ import { Section, SectionType } from "./Section";
 
 			// create section meta data of bounding boxes.
 			this.AllSections.forEach(section => {
-				CalculateRectangleOfSection(section);
+				try {
+					CalculateRectangleOfSection(section);
+				}
+				catch(e)
+				{
+					var s=10
+				}
+				
 			});
 		}
 

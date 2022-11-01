@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { headingDistanceTo } from 'geolocation-utils'
 import { ProcessedRouteWrapper } from './ProcessedRouteWrapper';
 import { ConvertLatLngToSnapshots, drawSections } from './Util';
-import { PrintSections, PrintSnapshots } from './FileSaver';
+import { PrintSections, PrintRoute, PrintSnapshots } from './FileSaver';
 import { Section } from './Section';
 import { NumberSymbol } from '@angular/common';
 
@@ -29,9 +29,16 @@ export class MapService {
 	initMap(): void {		
 		var mark = null;
 		var latLng: google.maps.LatLng;
+		//let startLatLng = new google.maps.LatLng(45.639403, -92.992107);
+		//let endLatLng = new google.maps.LatLng(45.831359, -92.982524);
+		//let pointOfInterestLatLng = new google.maps.LatLng(46.72623549, -92.21377368);
 		// for route A use the following hardcoded values
-		let startLatLng = new google.maps.LatLng(46.726195, -92.215144);
-		let endLatLng = new google.maps.LatLng(46.696495, -92.366314);
+		//let startLatLng = new google.maps.LatLng(46.726195, -92.215144);
+		//new startpoint
+		let startLatLng = new google.maps.LatLng(46.737221, -92.188425);
+		//let endLatLng = new google.maps.LatLng(46.696495, -92.366314);
+		//new endpoint
+		let endLatLng = new google.maps.LatLng(46.699799, -92.396848);
 		// for route B use the following hardcoded values
 		// let startLatLng = new google.maps.LatLng(46.696271, -92.364930);
 		// let endLatLng = new google.maps.LatLng(46.726021, -92.213864);
@@ -253,6 +260,7 @@ export class MapService {
 						drawSections(route.AllSections, map);
 						directionsRenderer.setMap(null); // We don't need the directions rendered on screen anymore.
 						PrintSections(route);
+						PrintRoute(route);
 						break;
 					default:
 						directionsRenderer.setDirections(response);
@@ -358,7 +366,7 @@ export class MapService {
 
 	interpolatePoints(pointsList: google.maps.LatLng[]): google.maps.LatLng[] {
 		let newList: google.maps.LatLng[] = [];
-		let interpolatedPointsDiffMs = 3;
+		let interpolatedPointsDiffMs = 1;
 
 		for (var i = 0; i <= pointsList.length - 2; i++) {
 			var firstPoint = pointsList[i];
