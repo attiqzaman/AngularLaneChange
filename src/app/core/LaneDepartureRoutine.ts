@@ -19,10 +19,14 @@ export class LaneDepartureRoutine {
 		mapService.initMap();
 		mapService.setMap(gpsSnapshots[0].Latitude, gpsSnapshots[1].Longitude);		
 		gpsSnapshots.forEach(gpsSnapshot => {
+			// This lambda basically represents the mobile new GPS point callback.
 			this.ProcessNewGpsSnapshot(gpsSnapshot, allSections);
+
+			// we are done gathering data, lets try to predict if lane departure occured.
 			this.PredictLaneDeparture();
 		});
 		
+		// code below was added for debugging and shouldn't be ported to mobile.
 		drawSections(allSections, mapService.map);
 		this.DataSnapshots.forEach(laneDepartureSnapshot => {
 			if (laneDepartureSnapshot.Alarm) {
@@ -34,9 +38,11 @@ export class LaneDepartureRoutine {
 		PrintLdwSnapshotsAsCsv(this.DataSnapshots);
 	}
 
-	// This will basically be the GPS event callback
+
 	ProcessNewGpsSnapshot(gpsSnapshot: Snapshot, allSections: Section[]) {
 		let startDate: Date = this.DataSnapshots.length > 0 ? this.DataSnapshots[0].TimeStamp : new Date(gpsSnapshot.TimeStampAsString);
+		
+		// create a new data object which will be used from now on for LaneDeaparture Routine.
 		let currentDatasnapshot: LaneDepartureSnapshot = new LaneDepartureSnapshot(
 			gpsSnapshot.Latitude,
 			gpsSnapshot.Longitude,
@@ -45,11 +51,13 @@ export class LaneDepartureRoutine {
 			startDate);
 
 
+		// We need atleast 2 snapshots to calculate heading.
 		if (this.DataSnapshots.length < 2) {
 			this.DataSnapshots.push(currentDatasnapshot);
 			return;
 		}
 
+		// calculate heading, distance anc accumulative distance wrt previous point.
 		let previousDataSnapshot = this.DataSnapshots[this.DataSnapshots.length - 1];
 		let headingDistanceFromPreviousSnapshot = headingDistanceTo(
 			{lat: previousDataSnapshot.Latitude, lon: previousDataSnapshot.Longitude },
@@ -60,14 +68,17 @@ export class LaneDepartureRoutine {
 		currentDatasnapshot.AccumulativeDistance = previousDataSnapshot.AccumulativeDistance + currentDatasnapshot.Distance; // not really used?
 		currentDatasnapshot.Heading = headingDistanceFromPreviousSnapshot.heading + 360;
 
+		// we need atleast 5 snapshots for rest of the logic to work.
 		if (this.DataSnapshots.length < 5) {
 			this.DataSnapshots.push(currentDatasnapshot);
 			return;
 		}
 		
+		// Average heading is calcualted between 3 snapshots (current and previous 2 snapshots)
 		let previousToPreviousDataSnapshot = this.DataSnapshots[this.DataSnapshots.length - 2];
 		currentDatasnapshot.AveragedHeading = (previousToPreviousDataSnapshot.Heading + previousDataSnapshot.Heading + currentDatasnapshot.Heading) / 3;
 		
+		// find the section ehicle is in.
 		const [currentVahicleSection, sectionInfo] = this.GetSectionOfVehicle(currentDatasnapshot.Latitude, currentDatasnapshot.Longitude, allSections);
 		currentDatasnapshot.SectionInfo = sectionInfo; 
 		if (currentVahicleSection === undefined) {
@@ -76,12 +87,14 @@ export class LaneDepartureRoutine {
 			return;
 		}
 
+		// update snapshot data object with section attributes (some fields were added just for debugging purposes)
 		currentDatasnapshot.SectionStartIndex = currentVahicleSection.StartIndex;
 		currentDatasnapshot.PerpendicularDistanceToMidPoint = currentVahicleSection.PerpendicularDistanceToMidPoint;
 		currentDatasnapshot.PathAvergaedSlope = currentVahicleSection.PathAvergaedSlope;
 		currentDatasnapshot.OptimizedPathAvergaedSlope = currentVahicleSection.OptimizedPathAvergaedSlope;
 		currentDatasnapshot.InitialHeading = currentVahicleSection.InitialHeading;
 		currentDatasnapshot.OptimizedInitialHeading = currentVahicleSection.OptimizedInitialHeading;
+		
 		// We need to figure out if this is the first point in a 'new section`. (this should check SectionId in final version)
 		if (currentDatasnapshot.SectionStartIndex === previousDataSnapshot.SectionStartIndex) {
 			currentDatasnapshot.DistanceFromStartOfSection = previousDataSnapshot.DistanceFromStartOfSection + currentDatasnapshot.Distance;
@@ -93,7 +106,7 @@ export class LaneDepartureRoutine {
 			);
 		}
 
-		// Confirm DistanceFromStartOfSection 
+		// calculate reference heading (in final version we will use either optimized or non-optimized value not both)
 		currentDatasnapshot.OptimizedRefrenceHeading = currentVahicleSection.SectionType === SectionType.Straight 
 			? currentVahicleSection.OptimizedPathAveragedHeading
 			: currentVahicleSection.OptimizedInitialHeading + (currentVahicleSection.OptimizedPathAvergaedSlope * currentDatasnapshot.DistanceFromStartOfSection);
@@ -105,7 +118,7 @@ export class LaneDepartureRoutine {
 		// Lateral Distance and Accumulated Lateral Distance Calculation (we use these to decide if lane departure happened)
 		currentDatasnapshot.Theta = currentDatasnapshot.OptimizedRefrenceHeading - currentDatasnapshot.AveragedHeading; // rename to currentAveragedHeading
 
-		// We want to find Perpendicular field of a right triangle
+		// LateralDistance is distance traveled in the perpendicular direction to the road.
 		currentDatasnapshot.LateralDistance = currentDatasnapshot.Distance * Math.sin(currentDatasnapshot.Theta * Math.PI / 180) // Sin(Theta) = P / H
 		currentDatasnapshot.AccumulativeLateralDistance = previousDataSnapshot.AccumulativeLateralDistance + currentDatasnapshot.LateralDistance;
 
@@ -116,19 +129,13 @@ export class LaneDepartureRoutine {
 		this.DataSnapshots.push(currentDatasnapshot);
 	}
 
-	
-	GetAllSections(): Section[] {
-		throw new Error("Function not implemented.");
-	}
-	GetCoordinates(): Snapshot[] {
-		throw new Error("Function not implemented.");
-	}
-
 	PredictLaneDeparture() {
+		// we can't predict lane departure if we have less than 5 snapshots
 		if (this.DataSnapshots.length < 5) {
 			return;
 		}
 
+		// Most of the logic here is simple addition/subtraction, we are still waiting for final calculations around this.
 		let lastDataSnaphotIndex = this.DataSnapshots.length - 1;
 
 		this.DataSnapshots[lastDataSnaphotIndex].Alarm = this.DataSnapshots[lastDataSnaphotIndex - 1].Alarm;
@@ -184,6 +191,8 @@ export class LaneDepartureRoutine {
 			currentDataSnapshot.AccumulativeLateralDistance < previousDataSnapshot.AccumulativeLateralDistance;
 	}
 
+
+	// returns the section vehicle is in and a string indicating how section was determined (used for debugging).
 	GetSectionOfVehicle(latitude: number, longitude: number, allSections: Section[]): [Section | undefined, string]
 	{
 		for (let index = 0; index < allSections.length; index++) {
@@ -224,7 +233,7 @@ export class LaneDepartureRoutine {
 			}
 		}
 
-		// We haven't been able to find point in any section, we will now check distances to all sections and assing this point to the section with min distance.
+		// We haven't been able to find point in any section, we will now check distances to all sections and assinging this point to the section with min distance.
 		let indexOfSectionWithMinDistance: number = 0;
 		let currentMinDistance = Number.MAX_VALUE;
 		for (let index = 0; index < allSections.length; index++) 
@@ -242,12 +251,11 @@ export class LaneDepartureRoutine {
 			}
 		}
 
-		// we now have the section with Min distance, now we should check if point should be assigned to section before the selected section or not.
-		// We have a point that exists in 2 sections so we will have to figure out which section is closer to the point.
+		// we have the section with Min distance, now we should check if point should be assigned to section before the selected section or not.
 		var selectedSection = allSections[indexOfSectionWithMinDistance]
 		if (indexOfSectionWithMinDistance === 0)
 		{
-			// first section, we will start assigning sections when points atleast reach first section.
+			// first section, we will start assigning sections when car reaches atleast the first section.
 			return [undefined, 'PointBeforeFirstSection'];
 		}
 
@@ -274,37 +282,5 @@ export class LaneDepartureRoutine {
 		}
 		
 		throw new Error("no bounding rectangle defined for section.");
-		// let minLatitude: number;
-		// let maxLatitude: number;
-		// let minLongitude: number;
-		// let maxLongitude: number;
-
-		// if (currentSection.RectangleEndLatitude >= currentSection.RectangleStartLatitude) {
-		// 	minLatitude = currentSection.StartLatitude;
-		// 	maxLatitude = currentSection.EndLatitude; 
-		// } else {
-		// 	minLatitude = currentSection.EndLatitude;
-		// 	maxLatitude = currentSection.StartLatitude; 
-		// }
-
-		// if (currentSection.EndLongitude >= currentSection.StartLongitude) {
-		// 	minLongitude = currentSection.StartLongitude;
-		// 	maxLongitude = currentSection.EndLongitude; 
-		// } else {
-		// 	minLongitude = currentSection.EndLongitude;
-		// 	maxLongitude = currentSection.StartLongitude; 
-		// }
-
-		// minLatitude = minLatitude - change;
-		// maxLatitude = maxLatitude + change;
-		// minLongitude = minLongitude - change;
-		// maxLongitude = maxLongitude + change;
-
-		// if (latitude <= maxLatitude && latitude >= minLatitude && longitude <= maxLongitude && longitude >= minLongitude)
-		// {
-		// 	return true;
-		// }
-
-		// return false;
 	}
 }
