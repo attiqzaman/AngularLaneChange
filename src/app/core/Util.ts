@@ -369,7 +369,7 @@ export function GetAllNonStraightSections(straightSections: Section[]): Section[
 }
 
 export function CalculateAveragedDifferentialHeadings(differentialHeadings: number[]): number[] {
-	let numberOfHeadingsToAverage = 10; // 20 points ahead and 20 points behind
+	let numberOfHeadingsToAverage = 40; // 20 points ahead and 20 points behind
 	let averagedHeadings: number[] = Array(differentialHeadings.length).fill(0);
 
 	// We can't average start and of array on both sides so just copy over original values

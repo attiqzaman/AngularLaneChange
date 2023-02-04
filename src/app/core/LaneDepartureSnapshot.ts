@@ -24,6 +24,7 @@ export class LaneDepartureSnapshot {
 	SectionStartIndex: number = -1; // Should use SectionId instead.
 	IsFirstPointInSection: boolean = false;
 	SectionInfo: string = 'Undefined';
+	SectionType: string ='Undefined';
 
 	// The following shouldn't be here since they are part of a section object, but added here for now for easy debugging.
 	PerpendicularDistanceToMidPoint: number = NaN; 
@@ -31,6 +32,19 @@ export class LaneDepartureSnapshot {
 	OptimizedPathAvergaedSlope: number = NaN;
 	InitialHeading: number = NaN;
 	OptimizedInitialHeading: number = NaN;
+	PathAveragedHeading: number = NaN;
+	OptimizedPathAveragedHeading: number = NaN;
+	closestStart: number=NaN;
+	closestEnd: number=NaN;
+	dist2StartofAllsections: number = NaN;
+	dist2EndofAllsections: number = NaN;
+	dist: number = NaN;
+	point: number = NaN;
+	sum: number = NaN;
+	firstSnapshotIndex: number = NaN;
+	secondSnapshotIndex: number = NaN;
+	firstSectionIndex: number = NaN;
+	secondSectionIndex: number =  NaN;
 
 
     constructor(Latitude: number, Longitude: number, snapshotNumber: number, timeStamp: string, startTime: Date) 

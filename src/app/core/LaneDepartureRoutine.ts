@@ -1,3 +1,6 @@
+import { findLast } from "@angular/compiler/src/directive_resolver";
+import { CursorError } from "@angular/compiler/src/ml_parser/lexer";
+import { Variable } from "@angular/compiler/src/render3/r3_ast";
 import { BoundingBox, distanceTo, headingDistanceTo, insideBoundingBox } from "geolocation-utils";
 import { PrintLdwSnapshots, PrintLdwSnapshotsAsCsv } from "./FileSaver";
 import { LaneDepartureSnapshot } from "./LaneDepartureSnapshot";
@@ -36,6 +39,8 @@ export class LaneDepartureRoutine {
 
 	// This will basically be the GPS event callback
 	ProcessNewGpsSnapshot(gpsSnapshot: Snapshot, allSections: Section[]) {
+		//let startofSectionslat = allSections[0].StartLatitude
+		//let startofSectionslon = allSections[0].StartLongitude 
 		let startDate: Date = this.DataSnapshots.length > 0 ? this.DataSnapshots[0].TimeStamp : new Date(gpsSnapshot.TimeStampAsString);
 		let currentDatasnapshot: LaneDepartureSnapshot = new LaneDepartureSnapshot(
 			gpsSnapshot.Latitude,
@@ -113,8 +118,63 @@ export class LaneDepartureRoutine {
 		// for Absolute lateral distances
 		currentDatasnapshot.AbsoluteLateralDistance = Math.abs(currentDatasnapshot.LateralDistance)
 		currentDatasnapshot.AbsoluteAccumulativeLateralDistance = Math.abs(currentDatasnapshot.AccumulativeLateralDistance)
+		currentDatasnapshot.SectionType = currentVahicleSection.SectionType
+		currentDatasnapshot.PathAveragedHeading= currentVahicleSection.PathAveragedHeading
+		currentDatasnapshot.OptimizedPathAveragedHeading = currentVahicleSection.OptimizedPathAveragedHeading
 		this.DataSnapshots.push(currentDatasnapshot);
-	}
+
+       
+		let startofFirstSectionLat = allSections[0].StartLatitude;
+		let startofFirstSectionLon = allSections[0].StartLongitude;
+        currentDatasnapshot.dist2StartofAllsections = distanceTo({lat: startofFirstSectionLat, lon: startofFirstSectionLon },{lat: currentDatasnapshot.Latitude, lon: currentDatasnapshot.Longitude });
+
+		let endofLasttSectionLat = allSections[allSections.length-1].EndLatitude;
+		let endofLastSectionLon = allSections[allSections.length-1].EndLongitude;
+        currentDatasnapshot.dist2EndofAllsections = distanceTo({lat: endofLasttSectionLat, lon: endofLastSectionLon },{lat: currentDatasnapshot.Latitude, lon: currentDatasnapshot.Longitude });
+	
+
+//trying to find the first point in the first valid section and the first point in the second valid section
+   let firstSnapshotIndex = -1;
+   let firstSectionIndex = -1;
+   let secondSnapshotIndex = -1;
+   let secondSectionIndex = -1;
+   let sum=NaN;
+   
+   for (let J = 0; J < this.DataSnapshots.length - 1; J++) {
+	 const [VehicletestSection, _] = this.GetSectionOfVehicle(this.DataSnapshots[J].Latitude, this.DataSnapshots[J].Longitude, allSections);
+   
+	 if (VehicletestSection === undefined) {
+	   continue;
+	 }
+   
+	 if (firstSectionIndex === -1) {
+	   firstSectionIndex = VehicletestSection.StartIndex;
+	   firstSnapshotIndex = J;
+	 } else if (VehicletestSection.StartIndex > firstSectionIndex) {
+	   secondSectionIndex = VehicletestSection.StartIndex;
+	   secondSnapshotIndex = J;
+	   break;
+	 }
+   }
+   
+  
+
+
+currentDatasnapshot.firstSnapshotIndex = firstSnapshotIndex;  
+currentDatasnapshot.firstSectionIndex = firstSectionIndex;
+currentDatasnapshot.secondSnapshotIndex = secondSnapshotIndex;       
+currentDatasnapshot.secondSectionIndex = secondSectionIndex;
+  
+if (secondSectionIndex !==-1){
+ sum= sum + allSections[secondSectionIndex].TotalSectionLength + allSections[firstSectionIndex].TotalSectionLength;  
+}
+
+
+		currentDatasnapshot.dist = distanceTo({lat: allSections[0].StartLatitude, lon: allSections[0].StartLongitude },{lat: this.DataSnapshots[0].Latitude, lon: this.DataSnapshots[0].Longitude });
+        
+
+     }
+	
 
 	
 	GetAllSections(): Section[] {

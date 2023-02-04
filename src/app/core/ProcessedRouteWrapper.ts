@@ -5,7 +5,7 @@ import { Snapshot } from "./Snapshot";
 import { ApplySmoothingfilter, AreSnapshotsOnSamePoint, CalculateAveragedDifferentialHeadings, CalculatePathAveragedDifferentialHeading, CalculatePathAveragedHeading, CalculatePathAveragedSlope, CalculatePathAveragedSlopeOfTransitionSection, CalculateRectangleOfSection, GetAllNonStraightSections, GetStraightSections, OptimizeCurveSection, OptimizeStraightSection, OptimizeTransientSection, PathAveragedDifferentialHeadingReselect } from "./Util";
 import { headingDistanceTo } from 'geolocation-utils'
 import { Section, SectionType } from "./Section";
-
+import { MapService } from "./map.service";
     // TODO: Clean this once we have finalized the implementation.
 
 
@@ -116,6 +116,8 @@ import { Section, SectionType } from "./Section";
 				this.AverageDistances.push(averageDistanceBetweenPoints);
 				this.AverageAccumulativeDistances.push(averageDistanceBetweenPoints + this.AccumulativeDistances[i - 1]);
 			}
+			this.Distances=this.AverageDistances;
+			this. AccumulativeDistances=this.AverageAccumulativeDistances;
 			this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.cutOffFrequency1, this.cutOffFrequency2);
 
 			for (let i = 1; i < this.SmoothedHeading.length; i++) {

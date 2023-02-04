@@ -32,13 +32,19 @@ export class MapService {
 		//let startLatLng = new google.maps.LatLng(45.639403, -92.992107);
 		//let endLatLng = new google.maps.LatLng(45.831359, -92.982524);
 		//let pointOfInterestLatLng = new google.maps.LatLng(46.72623549, -92.21377368);
-		// for route A use the following hardcoded values
+		// for route A1 use the following hardcoded values
 		//let startLatLng = new google.maps.LatLng(46.726195, -92.215144);
 		//new startpoint
-		let startLatLng = new google.maps.LatLng(46.737221, -92.188425);
+		//let startLatLng = new google.maps.LatLng(46.737221, -92.188425);
 		//let endLatLng = new google.maps.LatLng(46.696495, -92.366314);
 		//new endpoint
-		let endLatLng = new google.maps.LatLng(46.699799, -92.396848);
+		//let endLatLng = new google.maps.LatLng(46.699799, -92.396848);
+
+		// for route A2 use the following hardcoded values (sb)
+		//new startpoint
+		let startLatLng = new google.maps.LatLng(46.736592, -92.190272);
+		//new endpoint
+		let endLatLng = new google.maps.LatLng(46.699693, -92.391727);
 		// for route B use the following hardcoded values
 		// let startLatLng = new google.maps.LatLng(46.696271, -92.364930);
 		// let endLatLng = new google.maps.LatLng(46.726021, -92.213864);
