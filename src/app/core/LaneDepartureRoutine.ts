@@ -138,7 +138,7 @@ export class LaneDepartureRoutine {
    let firstSectionIndex = -1;
    let secondSnapshotIndex = -1;
    let secondSectionIndex = -1;
-   let sum=NaN;
+   let sum=0;
    
    for (let J = 0; J < this.DataSnapshots.length - 1; J++) {
 	 const [VehicletestSection, _] = this.GetSectionOfVehicle(this.DataSnapshots[J].Latitude, this.DataSnapshots[J].Longitude, allSections);
@@ -166,7 +166,11 @@ currentDatasnapshot.secondSnapshotIndex = secondSnapshotIndex;
 currentDatasnapshot.secondSectionIndex = secondSectionIndex;
   
 if (secondSectionIndex !==-1){
- sum= sum + allSections[secondSectionIndex].TotalSectionLength + allSections[firstSectionIndex].TotalSectionLength;  
+	console.log("sum "+ sum);
+	console.log(allSections[secondSnapshotIndex ].TotalSectionLength);
+	console.log(allSections[firstSnapshotIndex ].TotalSectionLength);
+	
+	currentDatasnapshot.sum=  allSections[secondSnapshotIndex ].TotalSectionLength + allSections[firstSnapshotIndex ].TotalSectionLength;  
 }
 
 
