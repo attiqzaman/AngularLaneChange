@@ -29,6 +29,21 @@ export class MapService {
 	initMap(): void {		
 		var mark = null;
 		var latLng: google.maps.LatLng;
+
+		//Routes
+
+		//Route A I35 S
+		//let startLatLng = new google.maps.LatLng(46.736592, -92.190272);
+		//let endLatLng = new google.maps.LatLng(46.699693, -92.391727);
+
+		//Route B I35 N
+		//let startLatLng = new google.maps.LatLng(46.698942, -92.385390);
+		//let endLatLng = new google.maps.LatLng(46.737367, -92.186687);
+
+		//Route Arrohead w
+		let startLatLng = new google.maps.LatLng(46.825805, -92.073179);
+		let endLatLng = new google.maps.LatLng(46.821899, -92.280420);
+
 		//let startLatLng = new google.maps.LatLng(45.639403, -92.992107);
 		//let endLatLng = new google.maps.LatLng(45.831359, -92.982524);
 		//let pointOfInterestLatLng = new google.maps.LatLng(46.72623549, -92.21377368);
@@ -40,14 +55,20 @@ export class MapService {
 		//new endpoint
 		//let endLatLng = new google.maps.LatLng(46.699799, -92.396848);
 
-		// for route A2 use the following hardcoded values (sb)
+		// for extended route A (A2) use the following hardcoded values (sb)
 		//new startpoint
-		let startLatLng = new google.maps.LatLng(46.736592, -92.190272);
+		//let startLatLng = new google.maps.LatLng(46.736592, -92.190272);
 		//new endpoint
-		let endLatLng = new google.maps.LatLng(46.699693, -92.391727);
+		//let endLatLng = new google.maps.LatLng(46.699693, -92.391727);
 		// for route B use the following hardcoded values
-		// let startLatLng = new google.maps.LatLng(46.696271, -92.364930);
-		// let endLatLng = new google.maps.LatLng(46.726021, -92.213864);
+		//let startLatLng = new google.maps.LatLng(46.696271, -92.364930);
+		//let endLatLng = new google.maps.LatLng(46.726021, -92.213864);
+
+		// for extended route B use the following hardcoded values
+		//new startpoint
+		//new endpoint
+		//let startLatLng = new google.maps.LatLng(46.698942, -92.385390);
+		//let endLatLng = new google.maps.LatLng(46.737367, -92.186687);
 		let pointOfInterestLatLng = new google.maps.LatLng(46.72623549, -92.21377368);
 
 		const directionsService = new google.maps.DirectionsService();

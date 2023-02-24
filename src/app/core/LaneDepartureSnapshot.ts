@@ -15,7 +15,9 @@ export class LaneDepartureSnapshot {
 	DistanceFromStartOfSection: number = 0;
 	Theta: number = 0;
 	LateralDistance: number = 0;
+	AverageLateralDistance: number = 0;
 	AccumulativeLateralDistance: number = 0;
+	AccumulativeAverageLateralDistance: number = 0;
 	AbsoluteLateralDistance: number = 0;
 	AbsoluteAccumulativeLateralDistance: number = 0;
 	Alarm: boolean = false;
@@ -40,11 +42,13 @@ export class LaneDepartureSnapshot {
 	dist2EndofAllsections: number = NaN;
 	dist: number = NaN;
 	point: number = NaN;
+	section: number = NaN;
 	sum: number = NaN;
 	firstSnapshotIndex: number = NaN;
 	secondSnapshotIndex: number = NaN;
 	firstSectionIndex: number = NaN;
 	secondSectionIndex: number =  NaN;
+	
 
 
     constructor(Latitude: number, Longitude: number, snapshotNumber: number, timeStamp: string, startTime: Date) 

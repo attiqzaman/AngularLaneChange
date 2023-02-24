@@ -2,20 +2,26 @@ import { findLast } from "@angular/compiler/src/directive_resolver";
 import { CursorError } from "@angular/compiler/src/ml_parser/lexer";
 import { Variable } from "@angular/compiler/src/render3/r3_ast";
 import { BoundingBox, distanceTo, headingDistanceTo, insideBoundingBox } from "geolocation-utils";
+import { fileURLToPath } from "url";
 import { PrintLdwSnapshots, PrintLdwSnapshotsAsCsv } from "./FileSaver";
 import { LaneDepartureSnapshot } from "./LaneDepartureSnapshot";
 import { MapService } from "./map.service";
 import { Section, SectionType } from "./Section";
 import { Snapshot } from "./Snapshot";
 import { drawPointWithColorAndData, drawSections } from "./Util";
+class GlobalConstants {
+    public static secondSectionFound: boolean = false;
 
-
+}
 export class LaneDepartureRoutine {
 	
 	// TODO: The DataStructure probably should be a Queue since we only use latest `X` number of elements and we need a mechanism to 
 	// remove the older items. For now I am using arrays since JS/TS doesn't have a built-in queue data structure and this work is throw-away anyway.
 	DataSnapshots: LaneDepartureSnapshot[] = [];
 	Counter: number = 0;
+
+	
+	   
 
 	constructor(allSections: Section[], gpsSnapshots: Snapshot[], mapService: MapService) {
 
@@ -71,6 +77,17 @@ export class LaneDepartureRoutine {
 		}
 		
 		let previousToPreviousDataSnapshot = this.DataSnapshots[this.DataSnapshots.length - 2];
+		// averaging heading
+		// let numberofheadtoavg =5;
+		
+		// for (let i=numberofheadtoavg; i <this.DataSnapshots.length - 1; i++){
+		// 	let add =0;
+		// 	for (let j=0; j<numberofheadtoavg;j++){
+		// 		add = add + this.DataSnapshots[i-j].Heading;
+				
+		// }
+		// currentDatasnapshot.AveragedHeading= add /numberofheadtoavg;
+		// 	}
 		currentDatasnapshot.AveragedHeading = (previousToPreviousDataSnapshot.Heading + previousDataSnapshot.Heading + currentDatasnapshot.Heading) / 3;
 		
 		const [currentVahicleSection, sectionInfo] = this.GetSectionOfVehicle(currentDatasnapshot.Latitude, currentDatasnapshot.Longitude, allSections);
@@ -112,7 +129,20 @@ export class LaneDepartureRoutine {
 
 		// We want to find Perpendicular field of a right triangle
 		currentDatasnapshot.LateralDistance = currentDatasnapshot.Distance * Math.sin(currentDatasnapshot.Theta * Math.PI / 180) // Sin(Theta) = P / H
+		
+		//averaging ld
+		// let numberofldtoavg =5;
+		
+		// for (let i=numberofldtoavg; i <this.DataSnapshots.length - 1; i++){
+		// 	let add =0;
+		// 	for (let j=0; j<numberofldtoavg;j++){
+		// 		add = add + this.DataSnapshots[i-j].LateralDistance;
+				
+		// }
+		// currentDatasnapshot.AverageLateralDistance= add /numberofldtoavg;
+		// 	}
 		currentDatasnapshot.AccumulativeLateralDistance = previousDataSnapshot.AccumulativeLateralDistance + currentDatasnapshot.LateralDistance;
+		//currentDatasnapshot.AccumulativeAverageLateralDistance = previousDataSnapshot.AccumulativeAverageLateralDistance + currentDatasnapshot.AverageLateralDistance;
 
 		// Although we probably will only care about absolute value of lateral distances but to help debug stuff I will create separate properties
 		// for Absolute lateral distances
@@ -139,38 +169,46 @@ export class LaneDepartureRoutine {
    let secondSnapshotIndex = -1;
    let secondSectionIndex = -1;
    let sum=0;
+   let prevTime  =  Math.floor(Date.now())
    
-   for (let J = 0; J < this.DataSnapshots.length - 1; J++) {
-	 const [VehicletestSection, _] = this.GetSectionOfVehicle(this.DataSnapshots[J].Latitude, this.DataSnapshots[J].Longitude, allSections);
-   
-	 if (VehicletestSection === undefined) {
-	   continue;
-	 }
-   
-	 if (firstSectionIndex === -1) {
-	   firstSectionIndex = VehicletestSection.StartIndex;
-	   firstSnapshotIndex = J;
-	 } else if (VehicletestSection.StartIndex > firstSectionIndex) {
-	   secondSectionIndex = VehicletestSection.StartIndex;
-	   secondSnapshotIndex = J;
-	   break;
-	 }
+   if( this.DataSnapshots.length == 6){
+	GlobalConstants.secondSectionFound = false
+	console.log("Global variable resetting" + this.DataSnapshots.length)
    }
-   
-  
 
+   if( !GlobalConstants.secondSectionFound )
+   {
+	for (let J = 0; J < this.DataSnapshots.length - 1; J++) {
+		const [VehicletestSection, _] = this.GetSectionOfVehicle(this.DataSnapshots[J].Latitude, this.DataSnapshots[J].Longitude, allSections);
+	  
+		if (VehicletestSection === undefined) {
+		  continue;
+		}
+	  
+		if (firstSectionIndex === -1) {
+		  firstSectionIndex = VehicletestSection.StartIndex;
+		  firstSnapshotIndex = J;
+		} else if (VehicletestSection.StartIndex > firstSectionIndex) {
+		  secondSectionIndex = VehicletestSection.StartIndex;
+		  secondSnapshotIndex = J;
+		  GlobalConstants.secondSectionFound = true
+		  break;
+		}
+	  }
 
-currentDatasnapshot.firstSnapshotIndex = firstSnapshotIndex;  
-currentDatasnapshot.firstSectionIndex = firstSectionIndex;
-currentDatasnapshot.secondSnapshotIndex = secondSnapshotIndex;       
-currentDatasnapshot.secondSectionIndex = secondSectionIndex;
-  
+	  
+   }
+
+	currentDatasnapshot.firstSnapshotIndex = firstSnapshotIndex;  
+	currentDatasnapshot.firstSectionIndex = firstSectionIndex;
+	currentDatasnapshot.secondSnapshotIndex = secondSnapshotIndex;       
+	currentDatasnapshot.secondSectionIndex = secondSectionIndex;
+
 if (secondSectionIndex !==-1){
-	console.log("sum "+ sum);
-	console.log(allSections[secondSnapshotIndex ].TotalSectionLength);
-	console.log(allSections[firstSnapshotIndex ].TotalSectionLength);
-	
-	currentDatasnapshot.sum=  allSections[secondSnapshotIndex ].TotalSectionLength + allSections[firstSnapshotIndex ].TotalSectionLength;  
+	//console.log("sum "+ sum);
+
+	currentDatasnapshot.sum=  this.DataSnapshots[secondSnapshotIndex].AccumulativeDistance-this.DataSnapshots[firstSnapshotIndex].AccumulativeDistance;  
+	currentDatasnapshot.section= allSections[firstSnapshotIndex].TotalSectionLength;
 }
 
 
@@ -201,7 +239,7 @@ if (secondSectionIndex !==-1){
 			Math.abs(this.DataSnapshots[lastDataSnaphotIndex - 2].AccumulativeLateralDistance) == 0 ) {
 				return;
 		}
-		
+		//chnage to AccumulativeAverageLateralDistance when averaging
 		if (Math.abs(this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance) >= 1) {
 			
 			// Alarm here. For debugging/testing I will update a field in the object. 
@@ -218,7 +256,7 @@ if (secondSectionIndex !==-1){
 				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 4], this.DataSnapshots[lastDataSnaphotIndex - 5]))
 			{
 				this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
-				this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance = 0;
+				this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance = 0;//change to average when required
 				this.DataSnapshots[lastDataSnaphotIndex].Alarm = false;
 				this.DataSnapshots[lastDataSnaphotIndex].StartOfAlarm = false;
 				// this.DataSnapshots[lastDataSnaphotIndex].LateralDistance = 0;
@@ -244,8 +282,8 @@ if (secondSectionIndex !==-1){
 		// return currentDataSnapshot.AbsoluteLateralDistance < previousDataSnapshots.AbsoluteLateralDistance ||
 		// 	currentDataSnapshot.AbsoluteAccumulativeLateralDistance < previousDataSnapshots.AbsoluteAccumulativeLateralDistance;
 
-		return currentDataSnapshot.LateralDistance < previousDataSnapshot.LateralDistance ||
-			currentDataSnapshot.AccumulativeLateralDistance < previousDataSnapshot.AccumulativeLateralDistance;
+		return Math.abs(currentDataSnapshot.LateralDistance) < Math.abs(previousDataSnapshot.LateralDistance) ||
+			Math.abs(currentDataSnapshot.AccumulativeLateralDistance) < Math.abs(previousDataSnapshot.AccumulativeLateralDistance);
 	}
 
 	GetSectionOfVehicle(latitude: number, longitude: number, allSections: Section[]): [Section | undefined, string]
