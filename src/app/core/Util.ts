@@ -312,9 +312,10 @@ export function OptimizeTransientSection(curveSection: Section) {
 	curveSection.OptimizedPathAvergaedSlope = curveSection.PathAvergaedSlope;
 }
 
-export function GetStraightSections(averagedHeadings: number[]): Section[] {
+export function GetStraightSections(averagedHeadings: number[],threshold: number): Section[] {
 	let scanWindow = 3;
-	let threshold = 0.002;
+	// let threshold1 = 0.002;
+	// let threshold2 = 0.02;
 
 	let straightSectionHelperArray: number[] = [];
 	for (let i = 1; i < averagedHeadings.length - 1 - scanWindow; i++) {

@@ -37,12 +37,52 @@ export class MapService {
 		//let endLatLng = new google.maps.LatLng(46.699693, -92.391727);
 
 		//Route B I35 N
-		//let startLatLng = new google.maps.LatLng(46.698942, -92.385390);
-		//let endLatLng = new google.maps.LatLng(46.737367, -92.186687);
+		let startLatLng = new google.maps.LatLng(46.698942, -92.385390);
+		let endLatLng = new google.maps.LatLng(46.737367, -92.186687);
 
-		//Route Arrohead w
-		let startLatLng = new google.maps.LatLng(46.825805, -92.073179);
-		let endLatLng = new google.maps.LatLng(46.821899, -92.280420);
+		//Route C Arrohead W
+		//let startLatLng = new google.maps.LatLng(46.825805, -92.073179);
+		//let endLatLng = new google.maps.LatLng(46.821899, -92.280420);
+
+		//Route D Arrohead E
+		//let startLatLng = new google.maps.LatLng(46.821899, -92.280420);
+		//let endLatLng = new google.maps.LatLng(46.825805, -92.073179);
+
+		// smaller route
+		//let startLatLng = new google.maps.LatLng(46.822086, -92.184093);
+		//let endLatLng = new google.maps.LatLng(46.822042, -92.127530);
+
+		//Route E Ricelake N
+		//let startLatLng = new google.maps.LatLng(46.822150, -92.132234);
+		//let endLatLng = new google.maps.LatLng(47.053639, -92.114889);
+
+		//Route F Ricelake S
+		//let startLatLng = new google.maps.LatLng(47.053639, -92.114889);
+		//let endLatLng = new google.maps.LatLng(46.822150, -92.132234);
+
+		//RL N
+		//let startLatLng = new google.maps.LatLng(46.816706, -92.132079);
+		//let endLatLng = new google.maps.LatLng(46.998540, -92.150280);
+
+		//RL S
+		//let startLatLng = new google.maps.LatLng(46.998540, -92.150280);
+		//let endLatLng = new google.maps.LatLng(46.816706, -92.132079);
+		
+		//NE
+		//let startLatLng = new google.maps.LatLng(46.981467, -92.171388);
+		//let endLatLng = new google.maps.LatLng(46.981467, -92.032555);
+
+		//NW
+		//let startLatLng = new google.maps.LatLng(46.981467, -92.032555);
+		//let endLatLng = new google.maps.LatLng(46.981467, -92.171388);
+		
+		//JDS
+		//let startLatLng = new google.maps.LatLng(46.981550, -92.048080);
+		//let endLatLng = new google.maps.LatLng(46.837060, -92.055092);
+
+		//JDN
+		//let startLatLng = new google.maps.LatLng(46.837060, -92.055092);
+		//let endLatLng = new google.maps.LatLng(46.981550, -92.048080);
 
 		//let startLatLng = new google.maps.LatLng(45.639403, -92.992107);
 		//let endLatLng = new google.maps.LatLng(45.831359, -92.982524);

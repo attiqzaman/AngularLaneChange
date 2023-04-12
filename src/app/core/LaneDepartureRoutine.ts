@@ -88,7 +88,10 @@ export class LaneDepartureRoutine {
 		// }
 		// currentDatasnapshot.AveragedHeading= add /numberofheadtoavg;
 		// 	}
+		//currentDatasnapshot.AveragedHeading = (previousToPreviousDataSnapshot.Heading*previousToPreviousDataSnapshot.Distance + previousDataSnapshot.Heading*previousDataSnapshot.Distance + currentDatasnapshot.Heading*currentDatasnapshot.Distance) / (previousToPreviousDataSnapshot.Distance + previousDataSnapshot.Distance + currentDatasnapshot.Distance);
 		currentDatasnapshot.AveragedHeading = (previousToPreviousDataSnapshot.Heading + previousDataSnapshot.Heading + currentDatasnapshot.Heading) / 3;
+		//currentDatasnapshot.AveragedHeading = currentDatasnapshot.Heading;
+		//currentDatasnapshot.AveragedHeading = currentDatasnapshot.Heading;
 		
 		const [currentVahicleSection, sectionInfo] = this.GetSectionOfVehicle(currentDatasnapshot.Latitude, currentDatasnapshot.Longitude, allSections);
 		currentDatasnapshot.SectionInfo = sectionInfo; 
@@ -240,7 +243,7 @@ if (secondSectionIndex !==-1){
 				return;
 		}
 		//chnage to AccumulativeAverageLateralDistance when averaging
-		if (Math.abs(this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance) >= 1) {
+		//if (Math.abs(this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance) >= 1) {
 			
 			// Alarm here. For debugging/testing I will update a field in the object. 
 			this.DataSnapshots[lastDataSnaphotIndex].Alarm = true;
@@ -249,42 +252,69 @@ if (secondSectionIndex !==-1){
 
 			// We now need to calculate if Accmulative Lateral Distance needs to be reset or not. Once a vehicle completes
 			// a lane departure we need to set the Accumulative lateral distance to 0 so we can catch the next lane departure.
-			if (this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex], this.DataSnapshots[lastDataSnaphotIndex - 1]) &&
-				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 1], this.DataSnapshots[lastDataSnaphotIndex - 2]) &&
-				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 2], this.DataSnapshots[lastDataSnaphotIndex - 3]) &&
-				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 3], this.DataSnapshots[lastDataSnaphotIndex - 4]) &&
-				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 4], this.DataSnapshots[lastDataSnaphotIndex - 5]))
-			{
-				this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
-				this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance = 0;//change to average when required
-				this.DataSnapshots[lastDataSnaphotIndex].Alarm = false;
-				this.DataSnapshots[lastDataSnaphotIndex].StartOfAlarm = false;
-				// this.DataSnapshots[lastDataSnaphotIndex].LateralDistance = 0;
-				// This is where we will stop alarming.
-			}
+			// if (this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex], this.DataSnapshots[lastDataSnaphotIndex - 1]) &&
+			// 	this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 1], this.DataSnapshots[lastDataSnaphotIndex - 2]) &&
+			// 	this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 2], this.DataSnapshots[lastDataSnaphotIndex - 3]) &&
+			// 	this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 3], this.DataSnapshots[lastDataSnaphotIndex - 4]) &&
+			// 	this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 4], this.DataSnapshots[lastDataSnaphotIndex - 5]))
+			let counterplus=0;
+			let counterminus=0;
+				if (this.DataSnapshots[lastDataSnaphotIndex].LateralDistance>0){counterplus++;}
+				else{counterminus++;}
+				if (this.DataSnapshots[lastDataSnaphotIndex-1].LateralDistance>0){counterplus++;}
+				else{counterminus++;}
+				if (this.DataSnapshots[lastDataSnaphotIndex-2].LateralDistance>0){counterplus++;}
+				else{counterminus++;}
+				if (this.DataSnapshots[lastDataSnaphotIndex-3].LateralDistance>0){counterplus++;}
+				else{counterminus++;}
+				if (this.DataSnapshots[lastDataSnaphotIndex-4].LateralDistance>0){counterplus++;}
+				else{counterminus++;}
+				if (this.DataSnapshots[lastDataSnaphotIndex-5].LateralDistance>0){counterplus++;}
+				else{counterminus++;}
+				
+				if (counterplus >=2 && counterminus >=2)
+				{this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance = 0;}
 
-		} else {
-			// This is probably the case when car moved abit but didnt leave the lane and stabalized after few points.
-			if (this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex], this.DataSnapshots[lastDataSnaphotIndex - 1]) &&
-				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 1], this.DataSnapshots[lastDataSnaphotIndex - 2]) &&
-				this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 2], this.DataSnapshots[lastDataSnaphotIndex - 3]))
-			{
-				this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
-				this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance = 0;
-				// this.DataSnapshots[lastDataSnaphotIndex].LateralDistance = 0;
-			}
-		}
-	}
+			// {
+			// 	this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
+			// 	this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance = 0;//change to average when required
+			// 	this.DataSnapshots[lastDataSnaphotIndex].Alarm = false;
+			// 	this.DataSnapshots[lastDataSnaphotIndex].StartOfAlarm = false;
+			// 	// this.DataSnapshots[lastDataSnaphotIndex].LateralDistance = 0;
+			// 	// This is where we will stop alarming.
+			// }
 
-	IsCurrentLateralDistanceLessThanPreviousSnapshot(currentDataSnapshot: LaneDepartureSnapshot, previousDataSnapshot: LaneDepartureSnapshot) {
+		// } else {
+		// 	// This is probably the case when car moved abit but didnt leave the lane and stabalized after few points.
+		// 	// if (this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex], this.DataSnapshots[lastDataSnaphotIndex - 1]) &&
+		// 	// 	this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 1], this.DataSnapshots[lastDataSnaphotIndex - 2]) &&
+		// 	// 	this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 2], this.DataSnapshots[lastDataSnaphotIndex - 3]) &&
+		// 	// 	this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 3], this.DataSnapshots[lastDataSnaphotIndex - 4]) &&
+		// 	// 	this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 4], this.DataSnapshots[lastDataSnaphotIndex - 5]))
+
+		// 		if (this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex], this.DataSnapshots[lastDataSnaphotIndex - 1]) &&
+		// 		this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 1], this.DataSnapshots[lastDataSnaphotIndex - 2]) &&
+		// 		this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 2], this.DataSnapshots[lastDataSnaphotIndex - 3]) &&
+		// 		this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 3], this.DataSnapshots[lastDataSnaphotIndex - 4]) &&
+		// 		this.IsCurrentLateralDistanceLessThanPreviousSnapshot(this.DataSnapshots[lastDataSnaphotIndex - 4], this.DataSnapshots[lastDataSnaphotIndex - 5]))
+		// 	{
+		// 		this.DataSnapshots[lastDataSnaphotIndex].AbsoluteAccumulativeLateralDistance = 0;
+		// 		this.DataSnapshots[lastDataSnaphotIndex].AccumulativeLateralDistance = 0;
+		// 		// this.DataSnapshots[lastDataSnaphotIndex].LateralDistance = 0;
+		// 	}
+		// }
+	//}
+}
+
+	//IsCurrentLateralDistanceLessThanPreviousSnapshot(currentDataSnapshot: LaneDepartureSnapshot, previousDataSnapshot: LaneDepartureSnapshot) {
 		
 		// TODO: Do we need to check check lateral and accumulateLateral both? 
 		// return currentDataSnapshot.AbsoluteLateralDistance < previousDataSnapshots.AbsoluteLateralDistance ||
 		// 	currentDataSnapshot.AbsoluteAccumulativeLateralDistance < previousDataSnapshots.AbsoluteAccumulativeLateralDistance;
 
-		return Math.abs(currentDataSnapshot.LateralDistance) < Math.abs(previousDataSnapshot.LateralDistance) ||
-			Math.abs(currentDataSnapshot.AccumulativeLateralDistance) < Math.abs(previousDataSnapshot.AccumulativeLateralDistance);
-	}
+		//return Math.abs(currentDataSnapshot.LateralDistance) < Math.abs(previousDataSnapshot.LateralDistance) ||
+			//Math.abs(currentDataSnapshot.AccumulativeLateralDistance) < Math.abs(previousDataSnapshot.AccumulativeLateralDistance);
+	//}
 
 	GetSectionOfVehicle(latitude: number, longitude: number, allSections: Section[]): [Section | undefined, string]
 	{
