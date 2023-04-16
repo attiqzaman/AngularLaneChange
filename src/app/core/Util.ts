@@ -312,9 +312,10 @@ export function OptimizeTransientSection(curveSection: Section) {
 	curveSection.OptimizedPathAvergaedSlope = curveSection.PathAvergaedSlope;
 }
 
-export function GetStraightSections(averagedHeadings: number[]): Section[] {
+export function GetStraightSections(averagedHeadings: number[],threshold: number): Section[] {
 	let scanWindow = 3;
-	let threshold = 0.002;
+	// let threshold1 = 0.002;
+	// let threshold2 = 0.02;
 
 	let straightSectionHelperArray: number[] = [];
 	for (let i = 1; i < averagedHeadings.length - 1 - scanWindow; i++) {
@@ -369,7 +370,7 @@ export function GetAllNonStraightSections(straightSections: Section[]): Section[
 }
 
 export function CalculateAveragedDifferentialHeadings(differentialHeadings: number[]): number[] {
-	let numberOfHeadingsToAverage = 10; // 20 points ahead and 20 points behind
+	let numberOfHeadingsToAverage = 40; // 20 points ahead and 20 points behind
 	let averagedHeadings: number[] = Array(differentialHeadings.length).fill(0);
 
 	// We can't average start and of array on both sides so just copy over original values
