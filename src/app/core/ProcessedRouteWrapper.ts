@@ -120,11 +120,16 @@ import { CurrencyPipe } from "@angular/common";
 			}
 			this.Distances=this.AverageDistances;
 			this. AccumulativeDistances=this.AverageAccumulativeDistances;
-			this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.cutOffFrequency1, this.cutOffFrequency2);
+			// for Google route (needs to be commented for actual trajectories)
+			//this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.cutOffFrequency1, this.cutOffFrequency2);
 
-			for (let i = 1; i < this.SmoothedHeading.length; i++) {
-				let slope = (this.SmoothedHeading[i] - this.SmoothedHeading[i - 1]) / this.Distances[i];
-				this.Slopes.push(slope);	
+			//for (let i = 1; i < this.SmoothedHeading.length; i++) {
+			//	let slope = (this.SmoothedHeading[i] - this.SmoothedHeading[i - 1]) / this.Distances[i];
+			//	this.Slopes.push(slope);	
+			//}
+			// for actual route
+			for (let i = 1; i < this.OutHeadings.length; i++) {
+			this.SmoothedHeading[i] = (this.OutHeadings[i - 4] + this.OutHeadings[i - 3] + this.OutHeadings[i - 2] + this.OutHeadings[i - 1] + this.OutHeadings[i] + this.OutHeadings[i + 1] + this.OutHeadings[i + 2] + this.OutHeadings[i + 3] + this.OutHeadings[i + 4])/9;
 			}
 
 			// Now calculate differential headings array from smoothed headings

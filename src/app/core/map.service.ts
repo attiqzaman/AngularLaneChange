@@ -37,8 +37,8 @@ export class MapService {
 		//let endLatLng = new google.maps.LatLng(46.699693, -92.391727);
 
 		//Route B I35 N
-		let startLatLng = new google.maps.LatLng(46.698942, -92.385390);
-		let endLatLng = new google.maps.LatLng(46.737367, -92.186687);
+		// let startLatLng = new google.maps.LatLng(46.698942, -92.385390);
+		// let endLatLng = new google.maps.LatLng(46.737367, -92.186687);
 
 		//Route C Arrohead W
 		//let startLatLng = new google.maps.LatLng(46.825805, -92.073179);
@@ -77,12 +77,21 @@ export class MapService {
 		//let endLatLng = new google.maps.LatLng(46.981467, -92.171388);
 		
 		//JDS
-		//let startLatLng = new google.maps.LatLng(46.981550, -92.048080);
-		//let endLatLng = new google.maps.LatLng(46.837060, -92.055092);
+		let startLatLng = new google.maps.LatLng(46.981550, -92.048080);
+		let endLatLng = new google.maps.LatLng(46.837060, -92.055092);
 
 		//JDN
 		//let startLatLng = new google.maps.LatLng(46.837060, -92.055092);
 		//let endLatLng = new google.maps.LatLng(46.981550, -92.048080);
+
+		//I35 S long route 1
+		//let startLatLng = new google.maps.LatLng(46.693163, -92.449863);
+		//let endLatLng = new google.maps.LatLng(45.919538, -92.967772);
+
+		//I35 S long route 2
+		//let startLatLng = new google.maps.LatLng(46.101310, -92.889630);
+		//let endLatLng = new google.maps.LatLng(45.274475, -93.005901);
+
 
 		//let startLatLng = new google.maps.LatLng(45.639403, -92.992107);
 		//let endLatLng = new google.maps.LatLng(45.831359, -92.982524);
