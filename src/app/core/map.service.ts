@@ -33,8 +33,8 @@ export class MapService {
 		//Routes
 
 		//Route A I35 S
-		//let startLatLng = new google.maps.LatLng(46.736592, -92.190272);
-		//let endLatLng = new google.maps.LatLng(46.699693, -92.391727);
+		let startLatLng = new google.maps.LatLng(46.736592, -92.190272);
+		let endLatLng = new google.maps.LatLng(46.699693, -92.391727);
 
 		//Route B I35 N
 		// let startLatLng = new google.maps.LatLng(46.698942, -92.385390);
@@ -77,8 +77,8 @@ export class MapService {
 		//let endLatLng = new google.maps.LatLng(46.981467, -92.171388);
 		
 		//JDS
-		let startLatLng = new google.maps.LatLng(46.981550, -92.048080);
-		let endLatLng = new google.maps.LatLng(46.837060, -92.055092);
+		//let startLatLng = new google.maps.LatLng(46.981550, -92.048080);
+		//let endLatLng = new google.maps.LatLng(46.837060, -92.055092);
 
 		//JDN
 		//let startLatLng = new google.maps.LatLng(46.837060, -92.055092);
