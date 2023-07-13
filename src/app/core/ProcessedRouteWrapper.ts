@@ -119,13 +119,17 @@ import { CurrencyPipe } from "@angular/common";
 				this.AverageAccumulativeDistances.push(averageDistanceBetweenPoints + this.AccumulativeDistances[i - 1]);
 			}
 			this.Distances=this.AverageDistances;
-			this. AccumulativeDistances=this.AverageAccumulativeDistances;
+			this.AccumulativeDistances = this.AverageAccumulativeDistances;
 			// for Google route (needs to be commented for actual trajectories)
 			//this.SmoothedHeading = ApplySmoothingfilter(this.OutHeadings, this.cutOffFrequency1, this.cutOffFrequency2);
 			// for actual route
-			for (let i = 1; i < this.OutHeadings.length; i++) {
-				this.SmoothedHeading[i] = ((this.OutHeadings[i - 4] + this.OutHeadings[i - 3] + this.OutHeadings[i - 2] + this.OutHeadings[i - 1] + this.OutHeadings[i] + this.OutHeadings[i + 1] + this.OutHeadings[i + 2] + this.OutHeadings[i + 3] + this.OutHeadings[i + 4])/9);
-				}
+			for (let i = 0; i < this.OutHeadings.length; i++) {
+				if (i < 4) {
+					this.SmoothedHeading.push(this.OutHeadings[i]); // smoothed heading isn't averaged for first 4 points.
+				} else {
+					this.SmoothedHeading.push((this.OutHeadings[i - 4] + this.OutHeadings[i - 3] + this.OutHeadings[i - 2] + this.OutHeadings[i - 1] + this.OutHeadings[i] + this.OutHeadings[i + 1] + this.OutHeadings[i + 2] + this.OutHeadings[i + 3] + this.OutHeadings[i + 4]) / 9 );
+				}				
+			}
 
 			for (let i = 1; i < this.SmoothedHeading.length; i++) {
 				let slope = (this.SmoothedHeading[i] - this.SmoothedHeading[i - 1]) / this.Distances[i];
